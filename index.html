@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ПИДР</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet">
+  <link rel="apple-touch-icon" sizes="180x180" href="./favicon/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="./favicon/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./favicon//favicon-16x16.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <dialog id="auth-dialog" class="dialog auth-dialog">
+    <form id="auth-form" class="dialog-card auth-card" method="dialog">
+      <label>
+        <span>Логин</span>
+        <input id="auth-email" type="email" autocomplete="username" placeholder="Введите логин" required>
+      </label>
+      <label>
+        <span>Пароль</span>
+        <div class="password-field">
+          <input id="auth-password" type="password" autocomplete="current-password" placeholder="Введите пароль" required>
+          <button id="toggle-auth-password" class="password-toggle" type="button" aria-label="Показать пароль" aria-pressed="false">
+            <span class="material-symbols-outlined" aria-hidden="true">visibility</span>
+          </button>
+        </div>
+      </label>
+      <div class="dialog-actions">
+        <button class="button button-primary" type="submit">Войти</button>
+      </div>
+      <div class="auth-alt">
+        <div class="auth-divider"><span>или</span></div>
+        <button class="button button-secondary auth-google-button" id="auth-google-button" type="button">
+          <span class="button-content">
+            <span class="button-icon auth-google-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v2.98h5.32c-.23 1.52-1.86 4.45-5.32 4.45-3.2 0-5.81-2.65-5.81-5.92 0-3.27 2.61-5.92 5.81-5.92 1.82 0 3.04.78 3.74 1.45l2.55-2.49C16.67 4.13 14.54 3.2 12 3.2 7.16 3.2 3.25 7.16 3.25 12s3.91 8.8 8.75 8.8c5.05 0 8.39-3.55 8.39-8.55 0-.58-.06-1.02-.14-1.45Z"/></svg>
+            </span>
+            <span>Войти через Google</span>
+          </span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="app-shell" class="page-shell">
+    <header class="topbar">
+      <div class="brand-bar">
+        <img src="logo.svg" alt="" height="40">
+        <span class="brand-name">ИДР</span>
+      </div>
+      <div class="topbar-actions">
+        <button class="button button-light" id="auth-trigger" type="button">
+          <span class="button-content">
+              <span class="button-icon" id="auth-button-icon" aria-hidden="true"></span>
+              <span id="auth-button-label">Войти</span>
+            </span>
+        </button>
+        <div class="user-menu-wrap">
+          <button id="current-user-badge" class="user-badge user-badge-button" type="button" aria-haspopup="menu" aria-expanded="false" hidden></button>
+          <div id="user-menu" class="user-menu" role="menu" hidden>
+            <button class="button button-secondary user-menu-action" id="open-profile" type="button" role="menuitem">
+              <span class="button-content"><span class="button-icon" aria-hidden="true"><span class="material-symbols-outlined">account_circle</span></span><span>Профиль</span></span>
+            </button>
+            <button class="button button-secondary user-menu-action" id="open-settings" type="button" role="menuitem">
+              <span class="button-content"><span class="button-icon" aria-hidden="true">⚙</span><span>Настройки</span></span>
+            </button>
+            <button class="button button-light user-menu-action" id="logout-button" type="button" role="menuitem">
+              <span class="button-content">
+                <span class="button-icon" id="logout-menu-icon" aria-hidden="true"></span>
+                <span>Выйти</span>
+              </span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="board">
+      <section class="panel collection-panel" aria-labelledby="collection-title">
+        <div class="panel-heading">
+          <div>
+            <h1 id="collection-title" class="panel-title">Просмотренные фильмы</h1>
+          </div>
+          <div class="panel-actions">
+            <button class="button button-primary" id="open-add-movie" type="button">
+              <span class="button-content"><span class="button-icon" aria-hidden="true">＋</span><span>Добавить фильм</span></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="toolbar">
+          <label class="search-field">
+            <span class="sr-only">Поиск фильма</span>
+            <input id="search-input" name="movie-search" type="text" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" placeholder="Поиск по названию или жанру">
+          </label>
+          <div class="filter-group">
+            <button class="button button-secondary" id="open-filter" type="button">
+              <span class="button-content"><span class="button-icon" aria-hidden="true">☰</span><span>Фильтр</span></span>
+            </button>
+            <select id="sort-select" aria-label="Сортировать">
+              <option value="released">По дате выхода</option>
+              <option value="watched">По дате просмотра</option>
+              <option value="rating">По рейтингу</option>
+              <option value="title">По названию</option>
+            </select>
+            <button class="sort-toggle" id="sort-direction" type="button" aria-label="Порядок сортировки" aria-pressed="false">
+              <span class="sort-toggle-track">
+                <span class="sort-toggle-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24"><path d="M7 4h2v11h3l-4 5-4-5h3zM14 4h6v2h-6zM14 9h5v2h-5zM14 14h4v2h-4z" fill="currentColor"/></svg>
+                </span>
+                <span class="sort-toggle-label"></span>
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div id="filter-summary" class="filter-summary">Сортировка: по дате просмотра, порядок: по убыванию, фильмов: 0</div>
+
+        <div id="movie-list" class="movie-list" aria-live="polite"></div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="movie-dialog" class="dialog">
+    <button class="icon-button dialog-close-floating" id="close-movie-dialog" type="button" aria-label="Закрыть">×</button>
+    <form id="movie-form" class="dialog-card movie-form" method="dialog">
+      <input id="movie-edit-id" name="movieId" type="hidden">
+
+      <section class="lookup-section">
+        <div class="lookup-head">
+          <div>
+            <h3>Автопоиск фильма</h3>
+            <p class="panel-hint">Введите название на русском или английском, и мы подставим данные автоматически.</p>
+          </div>
+        </div>
+        <div class="lookup-bar">
+          <label class="lookup-field">
+            <span class="sr-only">Поиск фильма в TMDB</span>
+              <input id="movie-lookup-query" name="tmdb-movie-search" type="text" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" placeholder="Например, American Psycho">
+          </label>
+          <button class="button button-secondary" id="movie-lookup-button" type="button">
+            <span class="button-content"><span class="button-icon" aria-hidden="true">⌕</span><span>Найти и подставить</span></span>
+          </button>
+        </div>
+        <div id="movie-lookup-status" class="panel-hint lookup-status"></div>
+        <div id="movie-lookup-results" class="lookup-results" aria-live="polite"></div>
+      </section>
+
+      <div class="field-grid">
+        <label>
+          <span>Название фильма</span>
+          <input id="movie-title" name="title" type="text" maxlength="80" placeholder="Perfect Days" required>
+        </label>
+        <label>
+          <span>Год</span>
+          <input id="movie-year" name="year" type="number" min="1900" max="2100" placeholder="2023">
+        </label>
+        <label>
+          <span>Дата просмотра</span>
+          <input id="movie-date" name="watchedOn" type="date">
+        </label>
+        <label>
+          <span>Жанр</span>
+          <input id="movie-genre" name="genre" type="text" maxlength="80" placeholder="Боевик, драма">
+        </label>
+        <label>
+          <span>Ссылка на постер</span>
+          <input id="movie-poster" name="poster" type="url" placeholder="https://...">
+        </label>
+        <label>
+          <span>Или загрузить постер</span>
+          <input id="movie-poster-file" name="posterFile" type="file" accept="image/*">
+        </label>
+      </div>
+
+      <label class="notes-field">
+        <span>Описание</span>
+        <textarea id="movie-notes" name="notes" rows="4" placeholder="Короткое описание или впечатление"></textarea>
+      </label>
+
+      <div class="ratings-section">
+        <div class="ratings-header">
+          <div>
+            <h3>Именные оценки</h3>
+            <p>Пользователи подтягиваются из Firebase Authentication.</p>
+          </div>
+        </div>
+        <div id="ratings-fields" class="ratings-grid"></div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="button button-primary" type="submit">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">✓</span><span>Сохранить</span></span>
+        </button>
+        <button class="button button-secondary" id="reset-form" type="reset">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">↺</span><span>Сбросить</span></span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="settings-dialog" class="dialog">
+    <button class="icon-button dialog-close-floating" id="close-settings-dialog" type="button" aria-label="Закрыть">×</button>
+    <div class="dialog-card settings-card">
+      <section class="settings-block">
+        <h3>Пользователи</h3>
+        <p class="panel-hint">Аккаунты создаются в Firebase Authentication. Здесь показывается текущий список и роли.</p>
+        <form id="friend-form" class="inline-form">
+          <label class="sr-only" for="friend-name">Управление пользователями</label>
+          <input id="friend-name" name="friendName" type="text" maxlength="24" placeholder="Пользователи управляются через Firebase" disabled>
+          <button class="button button-primary" type="submit">
+            <span class="button-content"><span class="button-icon" aria-hidden="true">?</span><span>Как добавить?</span></span>
+          </button>
+        </form>
+        <div id="friends-list" class="friends-list" aria-live="polite"></div>
+      </section>
+
+      <section class="settings-block">
+        <h3>Данные</h3>
+        <p class="panel-hint">Все данные сохраняются только в этом браузере.</p>
+        <button class="button button-secondary" id="clear-all" type="button">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">⌫</span><span>Очистить всё</span></span>
+        </button>
+      </section>
+
+        <section class="settings-block">
+          <h3>TMDB для автопоиска</h3>
+          <p class="panel-hint">Укажите TMDB API Read Access Token, чтобы искать фильмы и автоматически подставлять постер, описание, жанры и год.</p>
+          <label>
+            <span>TMDB токен</span>
+            <input id="tmdb-token" type="password" autocomplete="new-password" spellcheck="false" data-lpignore="true" placeholder="eyJhbGciOiJIUzI1NiJ9...">
+          </label>
+          <p class="panel-hint">Этот ключ сохраняется в Firebase. Для получения токена откройте настройки аккаунта TMDB и раздел API.</p>
+        </section>
+    </div>
+  </dialog>
+
+  <dialog id="profile-dialog" class="dialog">
+    <button class="icon-button dialog-close-floating" id="close-profile-dialog" type="button" aria-label="Закрыть">×</button>
+    <form id="profile-form" class="dialog-card profile-card" method="dialog">
+      <section class="settings-block profile-hero">
+        <div class="profile-avatar-wrap">
+          <div id="profile-avatar-preview" class="profile-avatar-preview" aria-hidden="true">?</div>
+        </div>
+        <div class="profile-hero-copy">
+          <strong id="profile-provider-label">Способы входа</strong>
+          <p id="profile-role-label" class="panel-hint">Пользователь</p>
+          <button class="button button-secondary profile-link-button" id="link-google-button" type="button">
+            <span class="button-content">
+              <span class="button-icon auth-google-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v2.98h5.32c-.23 1.52-1.86 4.45-5.32 4.45-3.2 0-5.81-2.65-5.81-5.92 0-3.27 2.61-5.92 5.81-5.92 1.82 0 3.04.78 3.74 1.45l2.55-2.49C16.67 4.13 14.54 3.2 12 3.2 7.16 3.2 3.25 7.16 3.25 12s3.91 8.8 8.75 8.8c5.05 0 8.39-3.55 8.39-8.55 0-.58-.06-1.02-.14-1.45Z"/></svg>
+              </span>
+              <span id="link-google-label">Привязать Google</span>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <div class="field-grid profile-grid">
+        <label>
+          <span>Имя</span>
+          <input id="profile-display-name" type="text" maxlength="40" placeholder="Как вас показывать в списке">
+        </label>
+        <label>
+          <span>Почта</span>
+          <input id="profile-email" type="email" autocomplete="email" placeholder="name@example.com" required>
+        </label>
+        <label>
+          <span>Ссылка на аватар</span>
+          <input id="profile-avatar-url" type="url" placeholder="https://...">
+        </label>
+        <label>
+          <span>Или загрузить аватар</span>
+          <input id="profile-avatar-file" type="file" accept="image/*">
+        </label>
+      </div>
+
+      <p id="profile-email-hint" class="panel-hint">После смены почты может понадобиться повторный вход.</p>
+
+      <div class="dialog-actions">
+        <button class="button button-primary" type="submit">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">✓</span><span>Сохранить профиль</span></span>
+        </button>
+        <button class="button button-secondary" id="remove-profile-avatar" type="button">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">⊘</span><span>Убрать аватар</span></span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="rating-dialog" class="dialog">
+    <button class="icon-button dialog-close-floating" id="close-rating-dialog" type="button" aria-label="Закрыть">×</button>
+    <form id="rating-form" class="dialog-card rating-form" method="dialog">
+      <input id="rating-movie-id" type="hidden">
+      <div class="rating-stars-panel">
+        <div class="rating-stars-stack">
+          <div id="rating-stars" class="rating-stars" aria-label="Оценка фильма" role="group"></div>
+          <div class="rating-scale" aria-hidden="true">
+            <span>1</span>
+            <span>2</span>
+            <span>3</span>
+            <span>4</span>
+            <span>5</span>
+            <span>6</span>
+            <span>7</span>
+            <span>8</span>
+            <span>9</span>
+            <span>10</span>
+          </div>
+        </div>
+        <div id="rating-value-display" class="rating-value-display">0.0</div>
+      </div>
+      <input id="rating-value" type="hidden" required>
+
+      <div class="dialog-actions">
+        <button class="button button-primary" type="submit">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">★</span><span>Сохранить оценку</span></span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="edit-movie-dialog" class="dialog">
+    <button class="icon-button dialog-close-floating" id="close-edit-movie-dialog" type="button" aria-label="Закрыть">×</button>
+    <form id="edit-movie-form" class="dialog-card movie-form edit-movie-form" method="dialog">
+      <input id="edit-movie-id" name="movieId" type="hidden">
+      <div class="field-grid">
+        <label>
+          <span>Название фильма</span>
+          <input id="edit-movie-title" name="title" type="text" maxlength="80" placeholder="Perfect Days" required>
+        </label>
+        <label>
+          <span>Год</span>
+          <input id="edit-movie-year" name="year" type="number" min="1900" max="2100" placeholder="2023">
+        </label>
+        <label>
+          <span>Дата просмотра</span>
+          <input id="edit-movie-date" name="watchedOn" type="date">
+        </label>
+        <label>
+          <span>Жанр</span>
+          <input id="edit-movie-genre" name="genre" type="text" maxlength="80" placeholder="Боевик, драма">
+        </label>
+        <label>
+          <span>Ссылка на постер</span>
+          <input id="edit-movie-poster" name="poster" type="url" placeholder="https://...">
+        </label>
+        <label>
+          <span>Или загрузить постер</span>
+          <input id="edit-movie-poster-file" name="posterFile" type="file" accept="image/*">
+        </label>
+      </div>
+
+      <label class="notes-field">
+        <span>Описание</span>
+        <textarea id="edit-movie-notes" name="notes" rows="4" placeholder="Короткое описание или впечатление"></textarea>
+      </label>
+
+      <div class="ratings-section">
+        <div class="ratings-header">
+          <div>
+            <h3>Оценки пользователей</h3>
+            <p>Здесь можно сразу поправить уже выставленные оценки.</p>
+          </div>
+        </div>
+        <div id="edit-ratings-fields" class="ratings-grid"></div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="button button-primary" type="submit">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">✓</span><span>Сохранить изменения</span></span>
+        </button>
+        <button class="button button-secondary" id="cancel-edit-movie" type="button">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">×</span><span>Отмена</span></span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="details-dialog" class="dialog">
+    <button class="icon-button dialog-close-floating" id="close-details-dialog" type="button" aria-label="Закрыть">×</button>
+    <div id="details-content" class="dialog-card details-card"></div>
+  </dialog>
+
+  <dialog id="filter-dialog" class="dialog">
+    <button class="icon-button dialog-close-floating" id="close-filter-dialog" type="button" aria-label="Закрыть">×</button>
+    <form id="filter-form" class="dialog-card filter-card" method="dialog">
+      <div class="filter-section">
+        <div class="filter-section-head">
+          <h3>Период просмотра</h3>
+          <div id="year-range-label" class="year-range-label">Любой год</div>
+        </div>
+        <div class="year-inputs">
+          <label>
+            <span>От</span>
+            <input id="filter-year-from" type="text" inputmode="numeric" maxlength="4" placeholder="2020" aria-label="Год просмотра от">
+          </label>
+          <label>
+            <span>До</span>
+            <input id="filter-year-to" type="text" inputmode="numeric" maxlength="4" placeholder="2026" aria-label="Год просмотра до">
+          </label>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-section-head">
+          <h3>Жанры</h3>
+          <button class="ghost-link small-ghost" id="clear-genres" type="button">Сбросить жанры</button>
+        </div>
+        <label class="filter-mode">
+          <input id="filter-strict-match" type="checkbox">
+          <span class="filter-mode-indicator" aria-hidden="true"></span>
+          <span class="filter-mode-copy">
+            <strong>Строгое совпадение</strong>
+            <span>Показывать только фильмы с точно выбранными жанрами</span>
+          </span>
+        </label>
+        <div id="genre-options" class="genre-options"></div>
+      </div>
+
+      <div class="dialog-actions">
+        <button class="button button-primary" type="submit">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">✓</span><span>Применить</span></span>
+        </button>
+        <button class="button button-secondary" id="reset-filter" type="button">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">↺</span><span>Сбросить фильтр</span></span>
+        </button>
+      </div>
+    </form>
+  </dialog>
+
+  <template id="rating-template">
+    <label class="rating-card">
+      <span class="rating-user">
+        <span class="rating-avatar"></span>
+        <span class="rating-name"></span>
+      </span>
+      <input class="rating-input" type="number" min="1" max="10" step="0.5" placeholder="8.5">
+    </label>
+  </template>
+
+  <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
