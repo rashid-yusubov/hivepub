@@ -37,7 +37,7 @@ const FIREBASE_CONFIG = {
 const ADMIN_EMAIL = "rashid221097@gmail.com";
 const PREFS_KEY = "movie-night-club-preferences";
 const TMDB_API_BASE = "https://api.themoviedb.org/3";
-const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
+const TMDB_IMAGE_ROOT = "https://image.tmdb.org/t/p";
 const LOGIN_ICON_HTML = '<span class="material-symbols-outlined">login</span>';
 const LOGOUT_ICON_SVG = '<svg viewBox="0 -960 960 960" fill="currentColor"><path d="M216-144q-29.7 0-50.85-21.15Q144-186.3 144-216v-528q0-29.7 21.15-50.85Q186.3-816 216-816h264v72H216v528h264v72H216Zm408-168-50.4-51.6L655.2-456H384v-72h271.2l-81.6-92.4L624-672l168 192-168 168Z"/></svg>';
 const TOAST_ICONS = {
@@ -69,6 +69,11 @@ const state = {
   friends: [],
   movies: [],
   tmdbToken: preferences.tmdbToken || "",
+  tmdbLanguage: "ru-RU",
+  tmdbPosterSize: "w500",
+  tmdbAutoProxy: true,
+  tmdbUseProxy: false,
+  tmdbProxyHost: "",
   editingMovieId: null,
   lastScrollY: 0
 };
@@ -98,7 +103,6 @@ const elements = {
   authTrigger: document.querySelector("#auth-trigger"),
   currentUserBadge: document.querySelector("#current-user-badge"),
   userMenu: document.querySelector("#user-menu"),
-  openProfile: document.querySelector("#open-profile"),
   logoutButton: document.querySelector("#logout-button"),
   logoutMenuIcon: document.querySelector("#logout-menu-icon"),
   authButtonLabel: document.querySelector("#auth-button-label"),
@@ -125,7 +129,6 @@ const elements = {
   ratingTemplate: document.querySelector("#rating-template"),
   movieDialog: document.querySelector("#movie-dialog"),
   settingsDialog: document.querySelector("#settings-dialog"),
-  profileDialog: document.querySelector("#profile-dialog"),
   ratingDialog: document.querySelector("#rating-dialog"),
   detailsDialog: document.querySelector("#details-dialog"),
   detailsContent: document.querySelector("#details-content"),
@@ -141,7 +144,6 @@ const elements = {
   filterYearTo: document.querySelector("#filter-year-to"),
   openAddMovie: document.querySelector("#open-add-movie"),
   openSettings: document.querySelector("#open-settings"),
-  closeProfileDialog: document.querySelector("#close-profile-dialog"),
   closeMovieDialog: document.querySelector("#close-movie-dialog"),
   closeEditMovieDialog: document.querySelector("#close-edit-movie-dialog"),
   cancelEditMovie: document.querySelector("#cancel-edit-movie"),
@@ -160,14 +162,26 @@ const elements = {
   profileDisplayName: document.querySelector("#profile-display-name"),
   profileEmail: document.querySelector("#profile-email"),
   profileEmailHint: document.querySelector("#profile-email-hint"),
+  profileEditName: document.querySelector("#profile-edit-name"),
+  profileEditEmail: document.querySelector("#profile-edit-email"),
+  profileCreatedLabel: document.querySelector("#profile-created-label"),
+  profilePasswordProvider: document.querySelector("#profile-password-provider"),
   profileAvatarUrl: document.querySelector("#profile-avatar-url"),
   profileAvatarFile: document.querySelector("#profile-avatar-file"),
   profileAvatarPreview: document.querySelector("#profile-avatar-preview"),
-  profileProviderLabel: document.querySelector("#profile-provider-label"),
-  profileRoleLabel: document.querySelector("#profile-role-label"),
+  profileDisplayNameLabel: document.querySelector("#profile-display-name-label"),
+  profileEmailLabel: document.querySelector("#profile-email-label"),
+  profileProviderList: document.querySelector("#profile-provider-list"),
+  profileFocusButton: document.querySelector("#profile-focus-button"),
   linkGoogleButton: document.querySelector("#link-google-button"),
   linkGoogleLabel: document.querySelector("#link-google-label"),
   removeProfileAvatar: document.querySelector("#remove-profile-avatar"),
+  settingsTabButtons: document.querySelectorAll("[data-settings-tab]"),
+  settingsPanels: document.querySelectorAll("[data-settings-panel]"),
+  settingsContent: document.querySelector(".settings-content"),
+  settingsTabAccount: document.querySelector("#settings-tab-account"),
+  settingsTabUsers: document.querySelector("#settings-tab-users"),
+  settingsTabTmdb: document.querySelector("#settings-tab-tmdb"),
   editMoviePosterUrl: document.querySelector("#edit-movie-poster"),
   editMoviePosterFile: document.querySelector("#edit-movie-poster-file"),
   movieLookupQuery: document.querySelector("#movie-lookup-query"),
@@ -175,6 +189,11 @@ const elements = {
   movieLookupStatus: document.querySelector("#movie-lookup-status"),
   movieLookupResults: document.querySelector("#movie-lookup-results"),
   tmdbToken: document.querySelector("#tmdb-token"),
+  tmdbLanguage: document.querySelector("#tmdb-language"),
+  tmdbPosterSize: document.querySelector("#tmdb-poster-size"),
+  tmdbAutoProxy: document.querySelector("#tmdb-auto-proxy"),
+  tmdbUseProxy: document.querySelector("#tmdb-use-proxy"),
+  tmdbProxyHost: document.querySelector("#tmdb-proxy-host"),
   movieTitle: document.querySelector("#movie-title"),
   movieYear: document.querySelector("#movie-year"),
   movieDate: document.querySelector("#movie-date"),
@@ -224,7 +243,6 @@ const dialogs = [
   elements.movieDialog,
   elements.editMovieDialog,
   elements.settingsDialog,
-  elements.profileDialog,
   elements.ratingDialog,
   elements.detailsDialog,
   elements.filterDialog
@@ -238,7 +256,6 @@ function init() {
   elements.toggleAuthPassword.addEventListener("click", toggleAuthPasswordVisibility);
   elements.authTrigger.addEventListener("click", handleAuthButtonClick);
   elements.currentUserBadge.addEventListener("click", toggleUserMenu);
-  elements.openProfile.addEventListener("click", openProfileDialog);
   elements.logoutButton.addEventListener("click", handleLogoutClick);
   elements.friendForm.addEventListener("submit", handleUserManagementSubmit);
   elements.movieForm.addEventListener("submit", handleMovieSubmit);
@@ -256,17 +273,38 @@ function init() {
     openMovieDialog();
   });
   elements.openSettings.addEventListener("click", () => {
-    if (!isAdmin()) {
+    if (!state.currentUser) {
       return;
     }
     closeUserMenu();
-    openDialog(elements.settingsDialog);
+    openSettingsDialog("account");
+  });
+  elements.settingsTabButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      openSettingsSection(button.dataset.settingsTab || "account");
+    });
   });
   elements.profileForm.addEventListener("submit", handleProfileSubmit);
   elements.profileAvatarUrl.addEventListener("input", syncProfileAvatarPreviewFromFields);
   elements.profileAvatarFile.addEventListener("change", handleProfileAvatarFileChange);
+  elements.profileFocusButton.addEventListener("click", () => {
+    elements.profileDisplayName.focus();
+    elements.profileDisplayName.select();
+  });
+  elements.profileEditName.addEventListener("click", () => {
+    elements.profileDisplayName.focus();
+    elements.profileDisplayName.select();
+  });
+  elements.profileEditEmail.addEventListener("click", () => {
+    if (elements.profileEmail.disabled) {
+      return;
+    }
+    elements.profileEmail.focus();
+    elements.profileEmail.select();
+  });
   elements.linkGoogleButton.addEventListener("click", handleLinkGoogleAccount);
   elements.removeProfileAvatar.addEventListener("click", handleRemoveProfileAvatar);
+  elements.friendForm.addEventListener("submit", handleUserManagementSubmit);
   elements.openFilter.addEventListener("click", openFilterDialog);
   elements.movieLookupButton.addEventListener("click", handleMovieLookup);
   elements.movieLookupQuery.addEventListener("keydown", (event) => {
@@ -277,10 +315,14 @@ function init() {
   });
   elements.movieLookupQuery.addEventListener("click", (event) => event.stopPropagation());
   elements.movieLookupQuery.addEventListener("pointerdown", (event) => event.stopPropagation());
-  elements.tmdbToken.addEventListener("input", handleTmdbTokenInput);
+  elements.tmdbToken.addEventListener("input", handleTmdbSettingsChange);
+  elements.tmdbLanguage.addEventListener("change", handleTmdbSettingsChange);
+  elements.tmdbPosterSize.addEventListener("change", handleTmdbSettingsChange);
+  elements.tmdbAutoProxy.addEventListener("change", handleTmdbSettingsChange);
+  elements.tmdbUseProxy.addEventListener("change", handleTmdbSettingsChange);
+  elements.tmdbProxyHost.addEventListener("input", handleTmdbSettingsChange);
   elements.closeMovieDialog.addEventListener("click", () => elements.movieDialog.close());
   elements.closeEditMovieDialog.addEventListener("click", () => elements.editMovieDialog.close());
-  elements.closeProfileDialog.addEventListener("click", () => elements.profileDialog.close());
   elements.cancelEditMovie.addEventListener("click", () => elements.editMovieDialog.close());
   elements.closeSettingsDialog.addEventListener("click", () => elements.settingsDialog.close());
   elements.closeRatingDialog.addEventListener("click", () => elements.ratingDialog.close());
@@ -294,7 +336,7 @@ function init() {
 
   dialogs.forEach((dialog) => {
     dialog.addEventListener("close", syncBodyModalState);
-    dialog.addEventListener("cancel", (event) => {
+    dialog.addEventListener("cancel", () => {
       syncBodyModalState();
     });
     dialog.addEventListener("click", (event) => {
@@ -334,11 +376,11 @@ function init() {
     setAuthStatus("");
 
     try {
-    await ensureUserDocument(user);
-    await refreshAppData();
-    showLoggedInApp();
+      await ensureUserDocument(user);
+      await refreshAppData();
+      showLoggedInApp();
     } catch (error) {
-    setAuthStatus(getReadableError(error), "error", "auth");
+      setAuthStatus(getReadableError(error), "error", "auth");
       await signOut(auth);
     }
   });
@@ -471,15 +513,30 @@ function renderAuthButton() {
   elements.logoutButton.setAttribute("title", "Выйти");
 }
 
-function openProfileDialog() {
-  if (!state.currentUser) {
-    openAuthDialog();
-    return;
-  }
-
-  closeUserMenu();
+function openSettingsDialog(section = "account") {
   syncProfileForm();
-  openDialog(elements.profileDialog);
+  syncSettingsFields();
+  openSettingsSection(section);
+  openDialog(elements.settingsDialog);
+}
+
+function openSettingsSection(section) {
+  const normalizedSection = !isAdmin() && section !== "account" ? "account" : section;
+
+  elements.settingsTabButtons.forEach((button) => {
+    const isActive = button.dataset.settingsTab === normalizedSection;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+  });
+
+  elements.settingsPanels.forEach((panel) => {
+    const isActive = panel.dataset.settingsPanel === normalizedSection;
+    panel.hidden = !isActive;
+    panel.classList.toggle("settings-panel-active", isActive);
+  });
+
+  elements.settingsContent.scrollTop = 0;
+  syncTmdbProxyFieldState();
 }
 
 function syncBodyModalState() {
@@ -666,10 +723,11 @@ function updateRoleUi() {
   elements.currentUserBadge.innerHTML = state.currentUser
     ? `${getUserAvatarMarkup(state.currentUser, "user-avatar-sm")}<span class="user-badge-name">${escapeHtml(getCurrentUserLabel())}</span>`
     : "";
-  elements.openProfile.hidden = !state.currentUser;
   elements.openAddMovie.hidden = !isAdmin();
-  elements.openSettings.hidden = !isAdmin();
+  elements.openSettings.hidden = !state.currentUser;
   elements.clearAll.hidden = !isAdmin();
+  elements.settingsTabUsers.hidden = !isAdmin();
+  elements.settingsTabTmdb.hidden = !isAdmin();
 }
 
 function renderUsersList() {
@@ -1376,7 +1434,7 @@ function getAuthProviderLabel() {
     labels.push("Firebase");
   }
 
-  return `Способы входа: ${labels.join(", ")}`;
+  return labels.join(", ");
 }
 
 function syncProfileForm() {
@@ -1384,24 +1442,52 @@ function syncProfileForm() {
 
   if (!user) {
     elements.profileForm.reset();
+    elements.profileDisplayNameLabel.textContent = "Пользователь";
+    elements.profileEmailLabel.textContent = "Почта не указана";
+    elements.profileProviderList.textContent = "Нет данных";
+    elements.profilePasswordProvider.textContent = "Не подключен";
+    elements.profileCreatedLabel.textContent = "-";
     elements.profileAvatarPreview.textContent = "?";
     elements.profileAvatarPreview.style.backgroundImage = "";
     return;
   }
 
+  const hasPassword = hasProvider("password");
+  const googleLinked = hasProvider("google.com");
   elements.profileDisplayName.value = user.displayName || "";
   elements.profileEmail.value = user.email || "";
   elements.profileAvatarUrl.value = user.photoURL || "";
   elements.profileAvatarFile.value = "";
-  elements.profileProviderLabel.textContent = getAuthProviderLabel();
-  elements.profileRoleLabel.textContent = `Роль: ${getRoleLabel(state.currentRole)}`;
+  elements.profileDisplayNameLabel.textContent = user.displayName || user.email || "Пользователь";
+  elements.profileEmailLabel.textContent = user.email || "Почта не указана";
+  elements.profileProviderList.textContent = googleLinked ? "Подключен" : "Не подключен";
+  elements.profilePasswordProvider.textContent = hasPassword ? "Подключен" : "Не подключен";
+  elements.profileCreatedLabel.textContent = formatAccountCreationDate(user.metadata?.creationTime);
   elements.profileEmail.disabled = isAdmin();
   elements.profileEmailHint.textContent = isAdmin()
     ? "Почта администратора зафиксирована, чтобы не сломать доступ к правилам Firebase."
     : "После смены почты может понадобиться повторный вход.";
-  elements.linkGoogleButton.disabled = hasProvider("google.com");
-  elements.linkGoogleLabel.textContent = hasProvider("google.com") ? "Google уже привязан" : "Привязать Google";
+  elements.profileEditEmail.disabled = isAdmin();
+  elements.linkGoogleButton.disabled = googleLinked;
+  elements.linkGoogleLabel.textContent = googleLinked ? "Google подключен" : "Подключить Google";
   syncProfileAvatarPreviewFromFields();
+}
+
+function formatAccountCreationDate(value) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(date);
 }
 
 function syncProfileAvatarPreview(url = "") {
@@ -1513,7 +1599,7 @@ function clearMovieEditingState(refs) {
 }
 
 function closeAdminDialogs() {
-  [elements.movieDialog, elements.editMovieDialog, elements.settingsDialog, elements.profileDialog, elements.ratingDialog, elements.detailsDialog].forEach((dialog) => {
+  [elements.movieDialog, elements.editMovieDialog, elements.settingsDialog, elements.ratingDialog, elements.detailsDialog].forEach((dialog) => {
     if (dialog.open) {
       dialog.close();
     }
@@ -1924,6 +2010,17 @@ function getFilteredMoviesCount() {
 
 function syncSettingsFields() {
   elements.tmdbToken.value = state.tmdbToken || "";
+  elements.tmdbLanguage.value = state.tmdbLanguage;
+  elements.tmdbPosterSize.value = state.tmdbPosterSize;
+  elements.tmdbAutoProxy.checked = state.tmdbAutoProxy;
+  elements.tmdbUseProxy.checked = state.tmdbUseProxy;
+  elements.tmdbProxyHost.value = state.tmdbProxyHost;
+  syncTmdbProxyFieldState();
+}
+
+function syncTmdbProxyFieldState() {
+  const proxyEnabled = elements.tmdbUseProxy.checked;
+  elements.tmdbProxyHost.disabled = !proxyEnabled;
 }
 
 async function handleProfileSubmit(event) {
@@ -1972,7 +2069,6 @@ async function handleProfileSubmit(event) {
     });
 
     syncProfileForm();
-    elements.profileDialog.close();
     await refreshAppData();
     setAuthStatus("Профиль обновлён.", "success", "profile");
   } catch (error) {
@@ -1994,9 +2090,15 @@ async function saveUserProfileDocument(profile) {
   }, { merge: true });
 }
 
-async function handleTmdbTokenInput(event) {
-  state.tmdbToken = event.currentTarget.value.trim();
+async function handleTmdbSettingsChange() {
+  state.tmdbToken = elements.tmdbToken.value.trim();
+  state.tmdbLanguage = elements.tmdbLanguage.value;
+  state.tmdbPosterSize = elements.tmdbPosterSize.value;
+  state.tmdbAutoProxy = elements.tmdbAutoProxy.checked;
+  state.tmdbUseProxy = elements.tmdbUseProxy.checked;
+  state.tmdbProxyHost = elements.tmdbProxyHost.value.trim();
   tmdbGenresMap = null;
+  syncTmdbProxyFieldState();
   clearLookupUi();
   if (!isAdmin()) {
     return;
@@ -2005,6 +2107,11 @@ async function handleTmdbTokenInput(event) {
   try {
     await setDoc(doc(db, ...SETTINGS_DOC_PATH), {
       tmdbToken: state.tmdbToken,
+      tmdbLanguage: state.tmdbLanguage,
+      tmdbPosterSize: state.tmdbPosterSize,
+      tmdbAutoProxy: state.tmdbAutoProxy,
+      tmdbUseProxy: state.tmdbUseProxy,
+      tmdbProxyHost: state.tmdbProxyHost,
       updatedAt: serverTimestamp(),
       updatedBy: state.currentUser?.email || ""
     }, { merge: true });
@@ -2059,7 +2166,7 @@ async function handleMovieLookup() {
 async function searchTmdbMovies(query) {
   const url = new URL(`${TMDB_API_BASE}/search/movie`);
   url.searchParams.set("query", query);
-  url.searchParams.set("language", "ru-RU");
+  url.searchParams.set("language", state.tmdbLanguage);
   url.searchParams.set("include_adult", "false");
   url.searchParams.set("page", "1");
 
@@ -2074,13 +2181,13 @@ async function searchTmdbMovies(query) {
       title: movie.title || movie.original_title || "Без названия",
       year: movie.release_date ? movie.release_date.slice(0, 4) : "",
       overview: movie.overview || "",
-      poster: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : ""
+      poster: movie.poster_path ? getTmdbImageUrl(movie.poster_path) : ""
     }));
 }
 
 async function fetchTmdbMovieDetails(movieId) {
   const url = new URL(`${TMDB_API_BASE}/movie/${movieId}`);
-  url.searchParams.set("language", "ru-RU");
+  url.searchParams.set("language", state.tmdbLanguage);
   const movie = await fetchTmdbJson(url);
 
   let genres = Array.isArray(movie.genres)
@@ -2096,9 +2203,13 @@ async function fetchTmdbMovieDetails(movieId) {
     title: movie.title || movie.original_title || "",
     year: movie.release_date ? movie.release_date.slice(0, 4) : "",
     notes: movie.overview || "",
-    poster: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : "",
+    poster: movie.poster_path ? getTmdbImageUrl(movie.poster_path) : "",
     genre: genres.join(", ")
   };
+}
+
+function getTmdbImageUrl(path) {
+  return `${TMDB_IMAGE_ROOT}/${state.tmdbPosterSize}${path}`;
 }
 
 async function getTmdbGenresMap() {
@@ -2107,7 +2218,7 @@ async function getTmdbGenresMap() {
   }
 
   const url = new URL(`${TMDB_API_BASE}/genre/movie/list`);
-  url.searchParams.set("language", "ru-RU");
+  url.searchParams.set("language", state.tmdbLanguage);
   const data = await fetchTmdbJson(url);
 
   tmdbGenresMap = new Map(
@@ -2201,12 +2312,18 @@ function clearLookupUi() {
 async function loadTmdbSettingsFromFirestore() {
   if (!state.currentUser || !isAdmin()) {
     state.tmdbToken = "";
+    state.tmdbLanguage = "ru-RU";
+    state.tmdbPosterSize = "w500";
+    state.tmdbAutoProxy = true;
+    state.tmdbUseProxy = false;
+    state.tmdbProxyHost = "";
     return;
   }
 
   const settingsRef = doc(db, ...SETTINGS_DOC_PATH);
   const snapshot = await getDoc(settingsRef);
-  const firestoreToken = snapshot.exists() ? String(snapshot.data().tmdbToken || "").trim() : "";
+  const settingsData = snapshot.exists() ? snapshot.data() : {};
+  const firestoreToken = String(settingsData.tmdbToken || "").trim();
 
   if (!firestoreToken && preferences.tmdbToken) {
     state.tmdbToken = preferences.tmdbToken.trim();
@@ -2221,6 +2338,11 @@ async function loadTmdbSettingsFromFirestore() {
   }
 
   state.tmdbToken = firestoreToken;
+  state.tmdbLanguage = typeof settingsData.tmdbLanguage === "string" ? settingsData.tmdbLanguage : "ru-RU";
+  state.tmdbPosterSize = typeof settingsData.tmdbPosterSize === "string" ? settingsData.tmdbPosterSize : "w500";
+  state.tmdbAutoProxy = settingsData.tmdbAutoProxy !== false;
+  state.tmdbUseProxy = settingsData.tmdbUseProxy === true;
+  state.tmdbProxyHost = typeof settingsData.tmdbProxyHost === "string" ? settingsData.tmdbProxyHost : "";
 }
 
 function getReadableError(error) {

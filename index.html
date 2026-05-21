@@ -63,9 +63,6 @@
         <div class="user-menu-wrap">
           <button id="current-user-badge" class="user-badge user-badge-button" type="button" aria-haspopup="menu" aria-expanded="false" hidden></button>
           <div id="user-menu" class="user-menu" role="menu" hidden>
-            <button class="button button-secondary user-menu-action" id="open-profile" type="button" role="menuitem">
-              <span class="button-content"><span class="button-icon" aria-hidden="true"><span class="material-symbols-outlined">account_circle</span></span><span>Профиль</span></span>
-            </button>
             <button class="button button-secondary user-menu-action" id="open-settings" type="button" role="menuitem">
               <span class="button-content"><span class="button-icon" aria-hidden="true">⚙</span><span>Настройки</span></span>
             </button>
@@ -206,91 +203,195 @@
 
   <dialog id="settings-dialog" class="dialog">
     <button class="icon-button dialog-close-floating" id="close-settings-dialog" type="button" aria-label="Закрыть">×</button>
-    <div class="dialog-card settings-card">
-      <section class="settings-block">
-        <h3>Пользователи</h3>
-        <p class="panel-hint">Аккаунты создаются в Firebase Authentication. Здесь показывается текущий список и роли.</p>
-        <form id="friend-form" class="inline-form">
-          <label class="sr-only" for="friend-name">Управление пользователями</label>
-          <input id="friend-name" name="friendName" type="text" maxlength="24" placeholder="Пользователи управляются через Firebase" disabled>
-          <button class="button button-primary" type="submit">
-            <span class="button-content"><span class="button-icon" aria-hidden="true">?</span><span>Как добавить?</span></span>
+    <div class="dialog-card settings-shell">
+      <div class="settings-layout">
+        <aside class="settings-sidebar" aria-label="Разделы настроек">
+          <button class="settings-nav-button is-active" id="settings-tab-account" data-settings-tab="account" type="button">
+            <span class="button-content"><span class="button-icon" aria-hidden="true"><span class="material-symbols-outlined">account_circle</span></span><span>Аккаунт</span></span>
           </button>
-        </form>
-        <div id="friends-list" class="friends-list" aria-live="polite"></div>
-      </section>
+          <button class="settings-nav-button" id="settings-tab-users" data-settings-tab="users" type="button">
+            <span class="button-content"><span class="button-icon" aria-hidden="true"><span class="material-symbols-outlined">group</span></span><span>Пользователи</span></span>
+          </button>
+          <button class="settings-nav-button" id="settings-tab-tmdb" data-settings-tab="tmdb" type="button">
+            <span class="button-content"><span class="button-icon" aria-hidden="true"><span class="material-symbols-outlined">movie</span></span><span>TMDB</span></span>
+          </button>
+        </aside>
 
-      <section class="settings-block">
-        <h3>Данные</h3>
-        <p class="panel-hint">Все данные сохраняются только в этом браузере.</p>
-        <button class="button button-secondary" id="clear-all" type="button">
-          <span class="button-content"><span class="button-icon" aria-hidden="true">⌫</span><span>Очистить всё</span></span>
-        </button>
-      </section>
+        <div class="settings-content">
+          <section class="settings-panel settings-panel-active" id="settings-panel-account" data-settings-panel="account">
+            <form id="profile-form" class="settings-stack" method="dialog">
+              <section class="settings-block profile-hero">
+                <div class="profile-avatar-wrap">
+                  <div id="profile-avatar-preview" class="profile-avatar-preview" aria-hidden="true">?</div>
+                </div>
+                <div class="profile-hero-copy">
+                  <strong id="profile-display-name-label">Пользователь</strong>
+                  <p id="profile-email-label" class="panel-hint">name@example.com</p>
+                </div>
+                <button class="button button-secondary profile-focus-button" id="profile-focus-button" type="button">Настроить</button>
+              </section>
 
-        <section class="settings-block">
-          <h3>TMDB для автопоиска</h3>
-          <p class="panel-hint">Укажите TMDB API Read Access Token, чтобы искать фильмы и автоматически подставлять постер, описание, жанры и год.</p>
-          <label>
-            <span>TMDB токен</span>
-            <input id="tmdb-token" type="password" autocomplete="new-password" spellcheck="false" data-lpignore="true" placeholder="eyJhbGciOiJIUzI1NiJ9...">
-          </label>
-          <p class="panel-hint">Этот ключ сохраняется в Firebase. Для получения токена откройте настройки аккаунта TMDB и раздел API.</p>
-        </section>
+              <section class="settings-block settings-account-list">
+                <label class="settings-account-item settings-account-row">
+                  <div class="settings-account-copy">
+                    <span class="settings-account-title">Полное имя</span>
+                    <input id="profile-display-name" class="settings-account-input" type="text" maxlength="40" placeholder="Как вас показывать в списке">
+                  </div>
+                  <button class="button button-secondary settings-account-action" id="profile-edit-name" type="button">Редактировать имя</button>
+                </label>
+                <label class="settings-account-item settings-account-row">
+                  <div class="settings-account-copy">
+                    <span class="settings-account-title">Email</span>
+                    <input id="profile-email" class="settings-account-input" type="email" autocomplete="email" placeholder="name@example.com" required>
+                  </div>
+                  <button class="button button-secondary settings-account-action" id="profile-edit-email" type="button">Обновить email</button>
+                </label>
+                <div class="settings-account-item">
+                  <div class="settings-account-copy">
+                    <span class="settings-account-title">Аккаунт создан</span>
+                    <p id="profile-created-label" class="settings-account-value">-</p>
+                  </div>
+                </div>
+              </section>
+
+              <section class="settings-block settings-auth-methods">
+                <div class="settings-methods-head">
+                  <h3>Способы входа</h3>
+                  <p class="panel-hint">Управляйте способами входа и привязывайте нужные аккаунты.</p>
+                </div>
+                <div class="settings-account-item settings-account-item-split">
+                  <div class="settings-account-copy">
+                    <span class="settings-account-title">Email и пароль</span>
+                    <p id="profile-password-provider" class="settings-account-value">Подключен</p>
+                  </div>
+                  <button class="button button-secondary settings-account-action" type="button" disabled>Подключен</button>
+                </div>
+                <div class="settings-account-item settings-account-item-split">
+                  <div class="settings-account-copy">
+                    <span class="settings-account-title">Google</span>
+                    <p id="profile-provider-list" class="settings-account-value">Не подключен</p>
+                  </div>
+                  <button class="button button-secondary profile-link-button" id="link-google-button" type="button">
+                    <span class="button-content">
+                      <span class="button-icon auth-google-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v2.98h5.32c-.23 1.52-1.86 4.45-5.32 4.45-3.2 0-5.81-2.65-5.81-5.92 0-3.27 2.61-5.92 5.81-5.92 1.82 0 3.04.78 3.74 1.45l2.55-2.49C16.67 4.13 14.54 3.2 12 3.2 7.16 3.2 3.25 7.16 3.25 12s3.91 8.8 8.75 8.8c5.05 0 8.39-3.55 8.39-8.55 0-.58-.06-1.02-.14-1.45Z"/></svg>
+                      </span>
+                      <span id="link-google-label">Привязать Google</span>
+                    </span>
+                  </button>
+                </div>
+                <label class="settings-account-item">
+                  <span class="settings-account-title">Ссылка на аватар</span>
+                  <input id="profile-avatar-url" type="url" placeholder="https://...">
+                </label>
+                <label class="settings-account-item">
+                  <span class="settings-account-title">Загрузить аватар</span>
+                  <input id="profile-avatar-file" type="file" accept="image/*">
+                </label>
+                <div class="settings-account-footer">
+                  <p id="profile-email-hint" class="panel-hint">После смены почты может понадобиться повторный вход.</p>
+                  <div class="dialog-actions">
+                    <button class="button button-primary" type="submit">
+                      <span class="button-content"><span class="button-icon" aria-hidden="true">✓</span><span>Сохранить профиль</span></span>
+                    </button>
+                    <button class="button button-secondary" id="remove-profile-avatar" type="button">
+                      <span class="button-content"><span class="button-icon" aria-hidden="true">⊘</span><span>Убрать аватар</span></span>
+                    </button>
+                  </div>
+                </div>
+              </section>
+            </form>
+          </section>
+
+          <section class="settings-panel" id="settings-panel-users" data-settings-panel="users" hidden>
+            <div class="settings-stack">
+              <section class="settings-block">
+                <h3>Пользователи</h3>
+                <p class="panel-hint">Аккаунты создаются в Firebase Authentication. Здесь показывается текущий список и роли.</p>
+                <form id="friend-form" class="inline-form">
+                  <label class="sr-only" for="friend-name">Управление пользователями</label>
+                  <input id="friend-name" name="friendName" type="text" maxlength="24" placeholder="Пользователи управляются через Firebase" disabled>
+                  <button class="button button-primary" type="submit">
+                    <span class="button-content"><span class="button-icon" aria-hidden="true">?</span><span>Как добавить?</span></span>
+                  </button>
+                </form>
+                <div id="friends-list" class="friends-list" aria-live="polite"></div>
+              </section>
+
+              <section class="settings-block settings-danger">
+                <h3>Данные</h3>
+                <p class="panel-hint">Все данные фильма, оценки и локальные настройки будут очищены.</p>
+                <button class="button button-secondary" id="clear-all" type="button">
+                  <span class="button-content"><span class="button-icon" aria-hidden="true">⌫</span><span>Очистить всё</span></span>
+                </button>
+              </section>
+            </div>
+          </section>
+
+          <section class="settings-panel" id="settings-panel-tmdb" data-settings-panel="tmdb" hidden>
+            <div class="settings-stack">
+              <section class="settings-block settings-row-block">
+                <div>
+                  <h3>Язык TMDB</h3>
+                  <p class="panel-hint">На каком языке отображать данные из TMDB.</p>
+                </div>
+                <select id="tmdb-language">
+                  <option value="ru-RU">Русский</option>
+                  <option value="en-US">English</option>
+                </select>
+              </section>
+
+              <section class="settings-block settings-row-block">
+                <div>
+                  <h3>Разрешение постеров TMDB</h3>
+                  <p class="panel-hint">Размер постеров, которые подставляются в карточки фильмов.</p>
+                </div>
+                <select id="tmdb-poster-size">
+                  <option value="w342">Низкое</option>
+                  <option value="w500">Среднее</option>
+                  <option value="w780">Высокое</option>
+                  <option value="original">Оригинал</option>
+                </select>
+              </section>
+
+              <section class="settings-block settings-row-block">
+                <div>
+                  <h3>Включить прокси автоматически</h3>
+                  <p class="panel-hint">Если прямой запрос к TMDB недоступен, можно включить режим подготовки к прокси.</p>
+                </div>
+                <label class="settings-switch">
+                  <input id="tmdb-auto-proxy" type="checkbox">
+                  <span class="settings-switch-track"></span>
+                </label>
+              </section>
+
+              <section class="settings-block settings-row-block">
+                <div>
+                  <h3>Проксировать TMDB</h3>
+                  <p class="panel-hint">Если у вас есть свой прокси-домен, укажите его ниже и включите этот режим.</p>
+                </div>
+                <label class="settings-switch">
+                  <input id="tmdb-use-proxy" type="checkbox">
+                  <span class="settings-switch-track"></span>
+                </label>
+              </section>
+
+              <section class="settings-block">
+                <h3>API / прокси домен</h3>
+                <p class="panel-hint">Например: `api.proxy.com` или полный URL прокси.</p>
+                <input id="tmdb-proxy-host" type="text" spellcheck="false" placeholder="Например: api.proxy.com">
+              </section>
+
+              <section class="settings-block">
+                <h3>TMDB ключ</h3>
+                <p class="panel-hint">Укажите TMDB API key или Read Access Token для автопоиска фильмов.</p>
+                <input id="tmdb-token" type="password" autocomplete="new-password" spellcheck="false" data-lpignore="true" placeholder="eyJhbGciOiJIUzI1NiJ9...">
+              </section>
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
-  </dialog>
-
-  <dialog id="profile-dialog" class="dialog">
-    <button class="icon-button dialog-close-floating" id="close-profile-dialog" type="button" aria-label="Закрыть">×</button>
-    <form id="profile-form" class="dialog-card profile-card" method="dialog">
-      <section class="settings-block profile-hero">
-        <div class="profile-avatar-wrap">
-          <div id="profile-avatar-preview" class="profile-avatar-preview" aria-hidden="true">?</div>
-        </div>
-        <div class="profile-hero-copy">
-          <strong id="profile-provider-label">Способы входа</strong>
-          <p id="profile-role-label" class="panel-hint">Пользователь</p>
-          <button class="button button-secondary profile-link-button" id="link-google-button" type="button">
-            <span class="button-content">
-              <span class="button-icon auth-google-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.35 11.1H12v2.98h5.32c-.23 1.52-1.86 4.45-5.32 4.45-3.2 0-5.81-2.65-5.81-5.92 0-3.27 2.61-5.92 5.81-5.92 1.82 0 3.04.78 3.74 1.45l2.55-2.49C16.67 4.13 14.54 3.2 12 3.2 7.16 3.2 3.25 7.16 3.25 12s3.91 8.8 8.75 8.8c5.05 0 8.39-3.55 8.39-8.55 0-.58-.06-1.02-.14-1.45Z"/></svg>
-              </span>
-              <span id="link-google-label">Привязать Google</span>
-            </span>
-          </button>
-        </div>
-      </section>
-
-      <div class="field-grid profile-grid">
-        <label>
-          <span>Имя</span>
-          <input id="profile-display-name" type="text" maxlength="40" placeholder="Как вас показывать в списке">
-        </label>
-        <label>
-          <span>Почта</span>
-          <input id="profile-email" type="email" autocomplete="email" placeholder="name@example.com" required>
-        </label>
-        <label>
-          <span>Ссылка на аватар</span>
-          <input id="profile-avatar-url" type="url" placeholder="https://...">
-        </label>
-        <label>
-          <span>Или загрузить аватар</span>
-          <input id="profile-avatar-file" type="file" accept="image/*">
-        </label>
-      </div>
-
-      <p id="profile-email-hint" class="panel-hint">После смены почты может понадобиться повторный вход.</p>
-
-      <div class="dialog-actions">
-        <button class="button button-primary" type="submit">
-          <span class="button-content"><span class="button-icon" aria-hidden="true">✓</span><span>Сохранить профиль</span></span>
-        </button>
-        <button class="button button-secondary" id="remove-profile-avatar" type="button">
-          <span class="button-content"><span class="button-icon" aria-hidden="true">⊘</span><span>Убрать аватар</span></span>
-        </button>
-      </div>
-    </form>
   </dialog>
 
   <dialog id="rating-dialog" class="dialog">
