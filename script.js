@@ -1170,7 +1170,9 @@ function openDetailsDialog(movieId) {
       <button class="button button-secondary details-edit" type="button">
         <span class="button-content"><span class="button-icon" aria-hidden="true">✎</span><span>Редактировать</span></span>
       </button>
-      <button class="ghost-link details-delete" type="button">Удалить фильм</button>
+      <button class="ghost-link details-delete" type="button">
+        <span class="button-content"><span class="button-icon" aria-hidden="true">⌫</span><span>Удалить фильм</span></span>
+      </button>
     `
     : "";
   const currentUserRating = state.currentUser ? movie.userRatings?.[state.currentUser.uid]?.value : null;
