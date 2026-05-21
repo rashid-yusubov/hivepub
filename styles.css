@@ -200,6 +200,12 @@ body::-webkit-scrollbar,
   display: block;
 }
 
+.toast-icon .material-symbols-outlined {
+  font-size: 20px;
+  line-height: 1;
+  display: block;
+}
+
 .toast-text {
   line-height: 1.4;
 }
