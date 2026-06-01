@@ -1,8 +1,36 @@
 import { initApp } from "./src/app.js";
 
+const preloader = document.getElementById("app-preloader");
+const PRELOADER_MIN_MS = 800;
+const preloaderStart = typeof performance !== "undefined" ? performance.now() : Date.now();
+let preloaderHideStarted = false;
+
+function hidePreloader() {
+  if (!preloader) {
+    return;
+  }
+
+  if (preloaderHideStarted) {
+    return;
+  }
+  preloaderHideStarted = true;
+
+  const elapsed = (typeof performance !== "undefined" ? performance.now() : Date.now()) - preloaderStart;
+  const remaining = Math.max(0, PRELOADER_MIN_MS - elapsed);
+
+  window.setTimeout(() => {
+    preloader.classList.add("is-hidden");
+    window.setTimeout(() => {
+      preloader.remove();
+    }, 260);
+  }, remaining);
+}
+
 try {
   initApp();
+  hidePreloader();
 } catch (error) {
+  hidePreloader();
   console.error("Startup error:", error);
   const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
   const banner = document.createElement("div");

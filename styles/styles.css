@@ -46,6 +46,42 @@ body.modal-open {
   height: 100vh;
 }
 
+.app-preloader {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  /* Дублируем фон сайта, чтобы прелоадер не "перекрашивал" страницу */
+  background:
+    radial-gradient(circle at top center, rgba(229, 9, 20, 0.12), transparent 24%),
+    linear-gradient(180deg, var(--bg-top) 0%, var(--bg) 24%, #101010 100%);
+  display: grid;
+  place-items: center;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 220ms ease, visibility 220ms ease;
+}
+
+.app-preloader-logo {
+  width: 92px;
+  height: 92px;
+  opacity: 0;
+  transform: translateZ(0) scale(0.98);
+  animation: app-preloader-logo-fade 520ms ease forwards;
+}
+
+@keyframes app-preloader-logo-fade {
+  to {
+    opacity: 1;
+    transform: translateZ(0) scale(1);
+  }
+}
+
+.app-preloader.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .auth-card {
   width: min(440px, 100%);
   display: grid;
