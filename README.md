@@ -1,31 +1,79 @@
-# Movie Night Club
+<p align="center">
+      <img src="favicon\android-chrome-192x192.png" alt="PIDR Logo">
+  </picture>
+</p>
+<h1 align="center">
+  <span>PIDR</span>
+</h1>
+<p align="center">
+  <span align="center">PIDR: Ratings, Reviews, and Where to Watch the Best Movies</span>
+</p>
 
-Статический сайт для небольшого киноклуба друзей: можно добавлять участников, сохранять просмотренные фильмы, выставлять оценки и видеть общий средний балл.
+<div align="center">
 
-## Что внутри
+![HTML](https://img.shields.io/badge/HTML5-E34F26?logo=html5\&logoColor=white)
+![CSS](https://img.shields.io/badge/CSS3-1572B6?logo=css3\&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript\&logoColor=black)
+![Firebase](https://img.shields.io/badge/Firebase-FFCA28?logo=firebase\&logoColor=black)
+![TMDB](https://img.shields.io/badge/TMDB-01D277?logo=themoviedatabase\&logoColor=white)
 
-- Одностраничный интерфейс без сборки и зависимостей
-- Хранение данных в `localStorage`
-- Поиск и сортировка фильмов
-- Адаптивный дизайн для телефона и компьютера
-- Подходит для GitHub Pages
+</div>
 
-## Запуск локально
+## 🚀 Возможности
 
-Достаточно открыть файл `index.html` в браузере.
+* Авторизация через Firebase Authentication
+* Управление профилем пользователя
+* Загрузка аватаров
+* Добавление фильмов вручную
+* Автозаполнение данных фильма через TMDB
+* Загрузка собственных постеров
+* Выставление оценок пользователями
+* Подсчет среднего рейтинга
+* Поиск фильмов
+* Сортировка фильмов
+* Гибкая фильтрация
+* Управление пользователями
+* Настройки TMDB
+* Хранение данных в Firebase Firestore
 
-## Как выложить на GitHub Pages
 
-1. Создайте новый репозиторий на GitHub.
-2. Загрузите в него файлы из этой папки.
-3. Откройте `Settings` -> `Pages`.
-4. В `Build and deployment` выберите `Deploy from a branch`.
-5. Выберите ветку `main` и папку `/root`.
-6. Сохраните настройки. Через минуту GitHub выдаст публичную ссылку на сайт.
+## 📂 Структура проекта
 
-## Что можно добавить дальше
+```text
+/
+├── assets/
+│   └── images/
+│
+├── favicon/
+│
+├── src/
+│   ├── app.js
+│   ├── auth.js
+│   ├── firebase.js
+│   ├── movies.js
+│   ├── ratings.js
+│   ├── profile.js
+│   ├── filters.js
+│   ├── tmdb.js
+│   ├── ui.js
+│   ├── context.js
+│   └── utils.js
+│
+├── styles/
+│   └── styles.css
+│
+├── script.js
+├── index.html
+└── site.webmanifest
+```
 
-- Общую базу данных, чтобы все друзья видели один и тот же список с разных устройств
-- Общую авторизацию через GitHub или Firebase
-- Постеры фильмов и ссылки на трейлеры
-- Экспорт списка просмотров в CSV
+## 👨‍💻 Команда разработчиков
+
+<a href="https://github.com/rashid-yusubov/sharius/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=rashid-yusubov/hivepub" />
+</a>
+
+## 📄 Лицензия
+Проект распространяется под лицензией MIT.
+
+Подробнее: [LICENCE.md](https://github.com/rashid-yusubov/hivepub/blob/main/LICENCE.md)
