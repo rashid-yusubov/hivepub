@@ -240,15 +240,13 @@ export function renderMovies() {
         <div class="movie-copy">
           <div class="movie-title-row">
             <h3>${escapeHtml(movie.title)}</h3>
-            <div class="movie-title-meta">
-              ${movie.year ? `<span class="movie-year">${escapeHtml(movie.year)}</span>` : ""}
-              <span class="movie-inline-score">${average.toFixed(1)}</span>
-            </div>
+            ${movie.year ? `<span class="movie-year">${escapeHtml(movie.year)}</span>` : ""}
           </div>
           <p class="movie-meta">${escapeHtml(formatMovieMeta(movie) || "Без жанра и даты")}${totalRatings ? ` • Оценок: ${totalRatings}` : ""}</p>
           <p class="movie-description">${escapeHtml(movie.notes || "Описание пока не добавлено.")}</p>
         </div>
         <div class="movie-side">
+          <div class="score-pill">${average.toFixed(1)}</div>
           <div class="rate-user-actions">
             <button class="button button-secondary rate-button" type="button">
               <span class="button-content"><span class="button-icon" aria-hidden="true">★</span><span>${rateButtonLabel}</span>${rateButtonMeta}</span>
