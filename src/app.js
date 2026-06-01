@@ -43,14 +43,24 @@ export function initApp() {
   configureTmdb({ fillMovieFormFromLookup });
   configureAuth({
     onSignedIn: async () => {
-      await refreshAppData();
-      showLoggedInApp();
+      globalThis.__pidrPreloader?.show?.();
+      try {
+        await refreshAppData();
+        showLoggedInApp();
+      } finally {
+        globalThis.__pidrPreloader?.hide?.();
+      }
     },
     onSignedOut: async () => {
-      closeAdminDialogs();
-      handleMovieFormReset();
-      resetMovieEditorForm();
-      await refreshGuestData();
+      globalThis.__pidrPreloader?.show?.();
+      try {
+        closeAdminDialogs();
+        handleMovieFormReset();
+        resetMovieEditorForm();
+        await refreshGuestData();
+      } finally {
+        globalThis.__pidrPreloader?.hide?.();
+      }
     }
   });
 

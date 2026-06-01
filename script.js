@@ -2,8 +2,40 @@ import { initApp } from "./src/app.js";
 
 const preloader = document.getElementById("app-preloader");
 const PRELOADER_MIN_MS = 800;
-const preloaderStart = typeof performance !== "undefined" ? performance.now() : Date.now();
 let preloaderHideStarted = false;
+let lastShowAt = null;
+let hideTimerId = null;
+
+function getNowMs() {
+  return typeof performance !== "undefined" ? performance.now() : Date.now();
+}
+
+function showPreloader() {
+  if (!preloader) {
+    return;
+  }
+
+  lastShowAt = getNowMs();
+  preloaderHideStarted = false;
+
+  if (hideTimerId) {
+    window.clearTimeout(hideTimerId);
+    hideTimerId = null;
+  }
+
+  preloader.setAttribute("aria-hidden", "false");
+  preloader.classList.remove("is-hidden");
+
+  // Перезапускаем fade логотипа при повторном показе
+  const logo = preloader.querySelector(".app-preloader-logo");
+  if (logo) {
+    // force reflow to restart animation
+    logo.style.animation = "none";
+    // eslint-disable-next-line no-unused-expressions
+    logo.offsetHeight;
+    logo.style.animation = "app-preloader-logo-fade 520ms ease forwards";
+  }
+}
 
 function hidePreloader() {
   if (!preloader) {
@@ -15,18 +47,21 @@ function hidePreloader() {
   }
   preloaderHideStarted = true;
 
-  const elapsed = (typeof performance !== "undefined" ? performance.now() : Date.now()) - preloaderStart;
+  const now = getNowMs();
+  const elapsed = lastShowAt == null ? 0 : now - lastShowAt;
   const remaining = Math.max(0, PRELOADER_MIN_MS - elapsed);
 
-  window.setTimeout(() => {
+  hideTimerId = window.setTimeout(() => {
+    preloader.setAttribute("aria-hidden", "true");
     preloader.classList.add("is-hidden");
-    window.setTimeout(() => {
-      preloader.remove();
-    }, 260);
   }, remaining);
 }
 
+globalThis.__pidrPreloader = { show: showPreloader, hide: hidePreloader };
+
 try {
+  // Обозначаем старт показа для гарантии минимальной длительности
+  showPreloader();
   initApp();
   hidePreloader();
 } catch (error) {

@@ -27,6 +27,14 @@ export function configureAuth({ onSignedIn, onSignedOut }) {
   onSignedOutCallback = onSignedOut;
 }
 
+function showLoading() {
+  globalThis.__pidrPreloader?.show?.();
+}
+
+function hideLoading() {
+  globalThis.__pidrPreloader?.hide?.();
+}
+
 export function subscribeToAuthState() {
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
@@ -64,11 +72,13 @@ export async function handleAuthSubmit(event) {
 
   setStatus("Входим...", "info", "auth");
 
+  showLoading();
   try {
     await signInWithEmailAndPassword(auth, email, password);
     document.querySelector("#auth-form").reset();
   } catch (error) {
     setStatus(getReadableError(error), "error", "auth");
+    hideLoading();
   }
 }
 
@@ -77,6 +87,7 @@ export async function handleGoogleAuth() {
   button.disabled = true;
   setStatus("Открываем вход через Google...", "info", "auth");
 
+  showLoading();
   try {
     const provider = new GoogleAuthProvider();
     provider.setCustomParameters({ prompt: "select_account" });
@@ -84,14 +95,23 @@ export async function handleGoogleAuth() {
     document.querySelector("#auth-form").reset();
   } catch (error) {
     setStatus(getReadableError(error), "error", "auth");
+    button.disabled = false;
+    hideLoading();
   } finally {
     button.disabled = false;
   }
 }
 
 export async function handleLogout() {
-  await signOut(auth);
-  setStatus("Вы вышли из аккаунта.", "success", "logout");
+  showLoading();
+  try {
+    await signOut(auth);
+    setStatus("Вы вышли из аккаунта.", "success", "logout");
+  } catch (error) {
+    setStatus(getReadableError(error), "error", "logout");
+    hideLoading();
+    throw error;
+  }
 }
 
 export function openAuthDialog(openDialog) {
