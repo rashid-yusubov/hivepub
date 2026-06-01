@@ -24,6 +24,7 @@ import { getUserAvatarMarkup, getUserLabel, isAdmin, setStatus } from "./ui.js";
 let refreshAppDataCallback = async () => {};
 let openAuthDialogCallback = () => {};
 let openDialogCallback = () => {};
+const MOVIES_CACHE_KEY = "pidr-movies-cache-v1";
 
 let moviesRealtimeUnsubscribe = null;
 let ratingsRealtimeUnsubscribers = new Map();
@@ -159,6 +160,47 @@ export async function loadMoviesFromFirestore() {
   const snapshot = await getDocs(collection(db, "movies"));
   const movies = await Promise.all(snapshot.docs.map(loadMovieSnapshot));
   state.movies = movies.sort((left, right) => compareValues(left.watchedOn || "", right.watchedOn || ""));
+  saveMoviesToCache(state.movies);
+}
+
+export function loadMoviesFromCache() {
+  try {
+    const raw = localStorage.getItem(MOVIES_CACHE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .map((movie) => ({
+        id: String(movie.id || ""),
+        title: String(movie.title || ""),
+        year: String(movie.year || ""),
+        watchedOn: String(movie.watchedOn || ""),
+        genre: String(movie.genre || ""),
+        poster: String(movie.poster || ""),
+        notes: String(movie.notes || ""),
+        createdAt: movie.createdAt || null,
+        ratings: movie.ratings && typeof movie.ratings === "object" ? movie.ratings : {},
+        userRatings: movie.userRatings && typeof movie.userRatings === "object" ? movie.userRatings : {}
+      }))
+      .filter((movie) => movie.id && movie.title)
+      .sort((left, right) => compareValues(left.watchedOn || "", right.watchedOn || ""));
+  } catch {
+    return [];
+  }
+}
+
+function saveMoviesToCache(movies) {
+  try {
+    localStorage.setItem(MOVIES_CACHE_KEY, JSON.stringify(movies));
+  } catch {
+    // ignore cache write errors (quota/private mode)
+  }
 }
 
 export function renderMovies() {

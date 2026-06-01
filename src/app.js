@@ -7,6 +7,7 @@ import {
   handleEditMovieSubmit,
   handleMovieFormReset,
   handleMovieSubmit,
+  loadMoviesFromCache,
   loadMoviesFromFirestore,
   openMovieDialog,
   startMoviesRealtime,
@@ -83,16 +84,25 @@ export function initApp() {
   syncSettingsFields();
   buildRatingStars();
   renderAuthButton();
+
+  // Публичный каталог должен быть виден сразу, даже до резолва auth-состояния.
+  void refreshGuestData();
   startMoviesRealtime();
   subscribeToAuthState();
 }
 
 async function refreshGuestData() {
-  state.movies = [];
+  state.users = [];
+  state.friends = [];
   try {
     await loadMoviesFromFirestore();
-  } catch {
-    state.movies = [];
+  } catch (error) {
+    // Не затираем уже загруженный список, если публичное чтение временно недоступно.
+    console.error("Не удалось загрузить публичный список фильмов.", error);
+    if (!state.movies.length) {
+      const cachedMovies = loadMoviesFromCache();
+      state.movies = cachedMovies;
+    }
   }
   renderApp();
 }
