@@ -9,6 +9,7 @@ import {
   handleMovieSubmit,
   loadMoviesFromFirestore,
   openMovieDialog,
+  startMoviesRealtime,
   resetMovieEditorForm,
   renderMovies,
   renderRatingFields
@@ -43,23 +44,31 @@ export function initApp() {
   configureTmdb({ fillMovieFormFromLookup });
   configureAuth({
     onSignedIn: async () => {
-      globalThis.__pidrPreloader?.show?.();
+      if (!globalThis.__pidrBoot?.isInitialAuthEvent) {
+        globalThis.__pidrPreloader?.show?.();
+      }
       try {
         await refreshAppData();
         showLoggedInApp();
       } finally {
-        globalThis.__pidrPreloader?.hide?.();
+        if (!globalThis.__pidrBoot?.isInitialAuthEvent) {
+          globalThis.__pidrPreloader?.hide?.();
+        }
       }
     },
     onSignedOut: async () => {
-      globalThis.__pidrPreloader?.show?.();
+      if (!globalThis.__pidrBoot?.isInitialAuthEvent) {
+        globalThis.__pidrPreloader?.show?.();
+      }
       try {
         closeAdminDialogs();
         handleMovieFormReset();
         resetMovieEditorForm();
         await refreshGuestData();
       } finally {
-        globalThis.__pidrPreloader?.hide?.();
+        if (!globalThis.__pidrBoot?.isInitialAuthEvent) {
+          globalThis.__pidrPreloader?.hide?.();
+        }
       }
     }
   });
@@ -74,6 +83,7 @@ export function initApp() {
   syncSettingsFields();
   buildRatingStars();
   renderAuthButton();
+  startMoviesRealtime();
   subscribeToAuthState();
 }
 

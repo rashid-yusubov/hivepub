@@ -8,6 +8,7 @@ import {
   editMovieRefs,
   elements,
   getDocs,
+  onSnapshot,
   serverTimestamp,
   setDoc,
   state,
@@ -16,7 +17,7 @@ import {
 } from "./context.js";
 import { filterState } from "./context.js";
 import { compareValues, createEmptyState, escapeHtml, formatDate, getTodayInputValue, normalizeMovieTitle, readFileAsDataUrl } from "./utils.js";
-import { matchesFilter, getSortDirectionMultiplier, resetFilterState } from "./filters.js";
+import { getMovieSearchResultsCount, matchesFilter, getSortDirectionMultiplier, populateYearInputs, renderFilterSummary, renderGenreOptions, resetFilterState } from "./filters.js";
 import { getAverageRating, getAllRatings, clampRating, openRatingDialog } from "./ratings.js";
 import { getUserAvatarMarkup, getUserLabel, isAdmin, setStatus } from "./ui.js";
 
@@ -24,10 +25,134 @@ let refreshAppDataCallback = async () => {};
 let openAuthDialogCallback = () => {};
 let openDialogCallback = () => {};
 
+let moviesRealtimeUnsubscribe = null;
+let ratingsRealtimeUnsubscribers = new Map();
+let moviesRealtimeStarted = false;
+
 export function configureMovies({ refreshAppData, openAuthDialog, openDialog }) {
   refreshAppDataCallback = refreshAppData;
   openAuthDialogCallback = openAuthDialog;
   openDialogCallback = openDialog;
+}
+
+function updateDerivedUi() {
+  // Обновляем то, что зависит от списка фильмов (жанры, годы, счётчик по фильтрам)
+  populateYearInputs();
+  renderGenreOptions();
+  renderMovies();
+  renderFilterSummary(getMovieSearchResultsCount);
+}
+
+function subscribeToMovieRatings(movieId) {
+  if (ratingsRealtimeUnsubscribers.has(movieId)) {
+    return;
+  }
+
+  const ratingsRef = collection(db, "movies", movieId, "ratings");
+  const unsubscribe = onSnapshot(ratingsRef, (ratingsSnapshot) => {
+    const ratings = {};
+    const userRatings = {};
+
+    ratingsSnapshot.forEach((ratingDoc) => {
+      const ratingData = ratingDoc.data() || {};
+      const value = Number(ratingData.value);
+      if (Number.isNaN(value)) {
+        return;
+      }
+
+      const userFromState = state.users.find((user) => user.id === ratingDoc.id);
+      const label = userFromState
+        ? getUserLabel(userFromState)
+        : (ratingData.userLabel || ratingData.userEmail || ratingDoc.id);
+
+      ratings[label] = value;
+      userRatings[ratingDoc.id] = { label, value };
+    });
+
+    const movie = state.movies.find((item) => item.id === movieId);
+    if (movie) {
+      movie.ratings = ratings;
+      movie.userRatings = userRatings;
+    }
+
+    // Для отрисовки списка достаточно renderMovies()
+    renderMovies();
+  });
+
+  ratingsRealtimeUnsubscribers.set(movieId, unsubscribe);
+}
+
+export function startMoviesRealtime() {
+  if (moviesRealtimeStarted) {
+    return;
+  }
+  moviesRealtimeStarted = true;
+
+  moviesRealtimeUnsubscribe = onSnapshot(collection(db, "movies"), (moviesSnapshot) => {
+    const incomingIds = new Set(moviesSnapshot.docs.map((d) => d.id));
+
+    // Удаляем подписки и объекты для удалённых фильмов
+    for (const [movieId, unsubscribe] of ratingsRealtimeUnsubscribers.entries()) {
+      if (!incomingIds.has(movieId)) {
+        try {
+          unsubscribe();
+        } catch {
+          // ignore
+        }
+        ratingsRealtimeUnsubscribers.delete(movieId);
+      }
+    }
+
+    // Синхронизируем state.movies по данным документов
+    const nextMovies = moviesSnapshot.docs.map((snapshotDoc) => {
+      const data = snapshotDoc.data() || {};
+      const existing = state.movies.find((m) => m.id === snapshotDoc.id);
+
+      return {
+        id: snapshotDoc.id,
+        title: data.title || "",
+        year: data.year || "",
+        watchedOn: data.watchedOn || "",
+        genre: data.genre || "",
+        poster: data.poster || "",
+        notes: data.notes || "",
+        createdAt: data.createdAt || null,
+        // ratings и userRatings обновятся отдельными подписками
+        ratings: existing?.ratings || {},
+        userRatings: existing?.userRatings || {}
+      };
+    });
+
+    state.movies = nextMovies.sort((left, right) => compareValues(left.watchedOn || "", right.watchedOn || ""));
+
+    // Гарантируем, что у каждого фильма есть подписка на рейтинги
+    for (const movieId of incomingIds) {
+      subscribeToMovieRatings(movieId);
+    }
+
+    updateDerivedUi();
+  });
+}
+
+export function stopMoviesRealtime() {
+  if (moviesRealtimeUnsubscribe) {
+    try {
+      moviesRealtimeUnsubscribe();
+    } catch {
+      // ignore
+    }
+    moviesRealtimeUnsubscribe = null;
+  }
+
+  for (const [, unsubscribe] of ratingsRealtimeUnsubscribers.entries()) {
+    try {
+      unsubscribe();
+    } catch {
+      // ignore
+    }
+  }
+  ratingsRealtimeUnsubscribers.clear();
+  moviesRealtimeStarted = false;
 }
 
 export async function loadMoviesFromFirestore() {

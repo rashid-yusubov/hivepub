@@ -21,7 +21,8 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
-  writeBatch
+  writeBatch,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 const FIREBASE_CONFIG = {
@@ -58,5 +59,6 @@ export {
   updateDoc,
   updateEmail,
   updateProfile,
-  writeBatch
+  writeBatch,
+  onSnapshot
 };

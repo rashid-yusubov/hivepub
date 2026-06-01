@@ -59,29 +59,38 @@ function hidePreloader() {
 
 globalThis.__pidrPreloader = { show: showPreloader, hide: hidePreloader };
 
-try {
-  // Обозначаем старт показа для гарантии минимальной длительности
-  showPreloader();
-  initApp();
-  hidePreloader();
-} catch (error) {
-  hidePreloader();
-  console.error("Startup error:", error);
-  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
-  const banner = document.createElement("div");
-  banner.style.position = "fixed";
-  banner.style.top = "16px";
-  banner.style.left = "50%";
-  banner.style.transform = "translateX(-50%)";
-  banner.style.zIndex = "99999";
-  banner.style.maxWidth = "min(920px, calc(100vw - 32px))";
-  banner.style.padding = "14px 18px";
-  banner.style.border = "1px solid rgba(255, 86, 86, 0.45)";
-  banner.style.borderRadius = "14px";
-  banner.style.background = "rgba(33, 12, 12, 0.96)";
-  banner.style.color = "#fff";
-  banner.style.font = "14px/1.5 system-ui, sans-serif";
-  banner.style.boxShadow = "0 16px 40px rgba(0, 0, 0, 0.35)";
-  banner.textContent = `Ошибка запуска сайта: ${message}`;
-  document.body.append(banner);
-}
+(async () => {
+  try {
+    // Обозначаем старт показа для гарантии минимальной длительности
+    showPreloader();
+    initApp();
+
+    // Чтобы не было "прелоадер → контент → прелоадер", ждём первого resolve auth-состояния.
+    const boot = globalThis.__pidrBoot;
+    if (boot?.authReady instanceof Promise) {
+      await boot.authReady;
+    }
+
+    hidePreloader();
+  } catch (error) {
+    hidePreloader();
+    console.error("Startup error:", error);
+    const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+    const banner = document.createElement("div");
+    banner.style.position = "fixed";
+    banner.style.top = "16px";
+    banner.style.left = "50%";
+    banner.style.transform = "translateX(-50%)";
+    banner.style.zIndex = "99999";
+    banner.style.maxWidth = "min(920px, calc(100vw - 32px))";
+    banner.style.padding = "14px 18px";
+    banner.style.border = "1px solid rgba(255, 86, 86, 0.45)";
+    banner.style.borderRadius = "14px";
+    banner.style.background = "rgba(33, 12, 12, 0.96)";
+    banner.style.color = "#fff";
+    banner.style.font = "14px/1.5 system-ui, sans-serif";
+    banner.style.boxShadow = "0 16px 40px rgba(0, 0, 0, 0.35)";
+    banner.textContent = `Ошибка запуска сайта: ${message}`;
+    document.body.append(banner);
+  }
+})();

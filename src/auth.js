@@ -21,6 +21,21 @@ import { renderAuthButton, setAuthPasswordVisibility, setStatus } from "./ui.js"
 
 let onSignedInCallback = async () => {};
 let onSignedOutCallback = async () => {};
+let hasResolvedInitialAuthState = false;
+
+function ensureAuthBootDeferred() {
+  if (globalThis.__pidrBoot?.authReady) {
+    return globalThis.__pidrBoot;
+  }
+
+  let resolve = () => {};
+  const authReady = new Promise((resolvePromise) => {
+    resolve = resolvePromise;
+  });
+
+  globalThis.__pidrBoot = { ...(globalThis.__pidrBoot || {}), authReady, resolveAuthReady: resolve };
+  return globalThis.__pidrBoot;
+}
 
 export function configureAuth({ onSignedIn, onSignedOut }) {
   onSignedInCallback = onSignedIn;
@@ -35,8 +50,20 @@ function hideLoading() {
   globalThis.__pidrPreloader?.hide?.();
 }
 
+function closeAuthDialogIfOpen() {
+  const dialog = document.querySelector("#auth-dialog");
+  if (dialog && dialog.open) {
+    dialog.close();
+  }
+}
+
 export function subscribeToAuthState() {
+  const boot = ensureAuthBootDeferred();
   onAuthStateChanged(auth, async (user) => {
+    const isInitial = !hasResolvedInitialAuthState;
+    hasResolvedInitialAuthState = true;
+    globalThis.__pidrBoot = { ...(globalThis.__pidrBoot || {}), isInitialAuthEvent: isInitial };
+
     if (!user) {
       state.currentUser = null;
       state.currentRole = "guest";
@@ -44,6 +71,9 @@ export function subscribeToAuthState() {
       state.friends = [];
       await onSignedOutCallback();
       renderAuthButton();
+      if (isInitial) {
+        boot.resolveAuthReady?.();
+      }
       return;
     }
 
@@ -56,6 +86,10 @@ export function subscribeToAuthState() {
     } catch (error) {
       setStatus(getReadableError(error), "error", "auth");
       await signOut(auth);
+    } finally {
+      if (isInitial) {
+        boot.resolveAuthReady?.();
+      }
     }
   });
 }
@@ -72,6 +106,8 @@ export async function handleAuthSubmit(event) {
 
   setStatus("Входим...", "info", "auth");
 
+  // `<dialog>` находится в top-layer и может быть выше прелоадера — закрываем сразу.
+  closeAuthDialogIfOpen();
   showLoading();
   try {
     await signInWithEmailAndPassword(auth, email, password);
@@ -87,6 +123,7 @@ export async function handleGoogleAuth() {
   button.disabled = true;
   setStatus("Открываем вход через Google...", "info", "auth");
 
+  closeAuthDialogIfOpen();
   showLoading();
   try {
     const provider = new GoogleAuthProvider();
