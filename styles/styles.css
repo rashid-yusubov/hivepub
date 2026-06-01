@@ -1128,7 +1128,9 @@ p,
 
 .movie-title-row {
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  gap: 8px;
   order: 1;
 }
 
@@ -1136,6 +1138,14 @@ p,
   margin: 0;
   font-size: 1.35rem;
   letter-spacing: -0.03em;
+  min-width: 0;
+}
+
+.movie-title-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
 }
 
 .movie-year {
@@ -1145,6 +1155,21 @@ p,
   background: rgba(255, 255, 255, 0.06);
   color: var(--muted-strong);
   font-size: 0.92rem;
+}
+
+.movie-inline-score {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 48px;
+  padding: 4px 10px;
+  border: 1px solid rgba(229, 9, 20, 0.35);
+  border-radius: 999px;
+  background: rgba(229, 9, 20, 0.12);
+  color: #fff;
+  font-size: 0.92rem;
+  font-weight: 700;
+  line-height: 1;
 }
 
 .movie-description,
@@ -2358,7 +2383,7 @@ label span {
 }
 
 /* Phone-first UX override (Poco F5 and similar) */
-@media (max-width: 900px) and (pointer: coarse) {
+@media (max-width: 900px) {
   html {
     -webkit-text-size-adjust: 100%;
   }
@@ -2581,5 +2606,261 @@ label span {
   .icon-button:hover {
     transform: none;
     box-shadow: none;
+  }
+
+  /* Header: full width, logo left, auth/avatar right */
+  .page-shell {
+    width: 100%;
+    margin: 0 0 16px;
+  }
+
+  .topbar {
+    width: 100%;
+    border-radius: 0;
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    gap: 8px;
+    justify-content: space-between;
+  }
+
+  .brand-bar img {
+    height: 32px;
+  }
+
+  .brand-name {
+    font-size: 1.55rem;
+    line-height: 1;
+  }
+
+  .topbar-actions {
+    display: flex;
+    flex-direction: row !important;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .user-menu-wrap:has(.user-badge-button:not([hidden])) {
+    min-width: 0;
+    width: auto;
+  }
+
+  .user-badge {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .user-badge-name {
+    display: none;
+  }
+
+  .user-badge-button::after {
+    display: none;
+  }
+
+  /* Toolbar: single horizontal line */
+  .toolbar {
+    position: static;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 4px 0 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    background: transparent;
+  }
+
+  .toolbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .search-field {
+    flex: 1 1 auto;
+    min-width: 140px;
+    width: auto !important;
+  }
+
+  .filter-group {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
+    flex: 0 0 auto;
+    width: auto !important;
+  }
+
+  #open-filter {
+    min-width: max-content;
+    white-space: nowrap;
+    width: auto !important;
+  }
+
+  #sort-select {
+    width: 160px;
+    min-width: 160px;
+    max-width: 160px;
+  }
+
+  #sort-direction {
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+  }
+
+  .search-field,
+  #sort-select,
+  #sort-direction {
+    max-width: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .toolbar {
+    overflow: visible;
+    gap: 6px;
+  }
+
+  .search-field {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  .filter-group {
+    gap: 6px;
+  }
+
+  #open-filter {
+    width: 44px !important;
+    min-width: 44px !important;
+    padding: 0;
+  }
+
+  #open-filter .button-content {
+    gap: 0;
+  }
+
+  #open-filter .button-content span:last-child {
+    display: none;
+  }
+
+  #sort-select {
+    width: 124px !important;
+    min-width: 124px !important;
+    max-width: 124px !important;
+    padding-left: 10px;
+    padding-right: 28px;
+    background-position:
+      calc(100% - 14px) calc(50% - 3px),
+      calc(100% - 9px) calc(50% - 3px);
+  }
+
+  #sort-direction {
+    width: 44px !important;
+    min-width: 44px !important;
+    max-width: 44px !important;
+    padding: 0;
+  }
+}
+
+/* Final mobile corrections */
+@media (max-width: 900px) {
+  .topbar {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .topbar-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    flex-wrap: nowrap !important;
+    width: auto !important;
+  }
+
+  .user-menu-wrap {
+    width: auto !important;
+  }
+
+  .user-menu {
+    left: auto !important;
+    right: 0 !important;
+    width: 200px !important;
+    max-width: calc(100vw - 16px);
+    z-index: 120 !important;
+  }
+
+  .movie-card {
+    grid-template-columns: 108px minmax(0, 1fr) !important;
+    gap: 10px !important;
+    align-items: start !important;
+    padding: 10px !important;
+  }
+
+  .movie-card > .poster-slot {
+    width: 108px !important;
+    height: 162px !important;
+    min-height: 162px !important;
+    max-height: 162px !important;
+    aspect-ratio: auto !important;
+  }
+
+  .movie-main {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+
+  .movie-title-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 8px !important;
+  }
+
+  .movie-title-row h3 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 1.02rem !important;
+  }
+
+  .movie-description {
+    -webkit-line-clamp: 3 !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .movie-card {
+    grid-template-columns: 94px minmax(0, 1fr) !important;
+    gap: 8px !important;
+    padding: 8px !important;
+  }
+
+  .movie-card > .poster-slot {
+    width: 94px !important;
+    height: 141px !important;
+    min-height: 141px !important;
+    max-height: 141px !important;
+  }
+
+  .movie-title-row h3 {
+    font-size: 0.96rem !important;
   }
 }
