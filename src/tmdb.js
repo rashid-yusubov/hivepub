@@ -13,16 +13,19 @@ import {
   getDoc
 } from "./context.js";
 import { setStatus } from "./ui.js";
+import { escapeHtml } from "./utils.js";
 
 let tmdbGenresMap = null;
 let fillMovieFormFromLookupCallback = () => {};
+let tmdbSettingsLoadedOnce = false;
 
 export function configureTmdb({ fillMovieFormFromLookup }) {
   fillMovieFormFromLookupCallback = fillMovieFormFromLookup;
 }
 
 export function syncSettingsFields() {
-  elements.tmdbToken.value = state.tmdbToken || "";
+  // Не светим ключ не-админам в UI, но в runtime ключ остаётся доступным.
+  elements.tmdbToken.value = state.currentRole === "admin" ? (state.tmdbToken || "") : "";
   elements.tmdbLanguage.value = state.tmdbLanguage;
   elements.tmdbPosterSize.value = state.tmdbPosterSize;
   elements.tmdbAutoProxy.checked = state.tmdbAutoProxy;
@@ -78,8 +81,10 @@ export async function handleMovieLookup() {
     return;
   }
 
+  await ensureTmdbLookupReady();
+
   if (!state.tmdbToken) {
-    setLookupStatus("Сначала добавьте TMDB токен в настройках.");
+    setLookupStatus("TMDB не настроен. Обратитесь к администратору.");
     elements.movieLookupResults.innerHTML = "";
     return;
   }
@@ -144,46 +149,47 @@ export function getTmdbImageUrl(path) {
 }
 
 export async function loadTmdbSettingsFromFirestore() {
-  if (!state.currentUser || state.currentRole !== "admin") {
-    state.tmdbToken = "";
-    state.tmdbLanguage = "ru-RU";
-    state.tmdbPosterSize = "w500";
-    state.tmdbAutoProxy = true;
-    state.tmdbUseProxy = false;
-    state.tmdbProxyHost = "";
+  try {
+    const snapshot = await getDoc(doc(db, ...SETTINGS_DOC_PATH));
+    const settingsData = snapshot.exists() ? snapshot.data() : {};
+    const firestoreToken = String(settingsData.tmdbToken || "").trim();
+
+    if (!firestoreToken && preferences.tmdbToken && state.currentRole === "admin" && state.currentUser) {
+      state.tmdbToken = preferences.tmdbToken.trim();
+      await setDoc(doc(db, ...SETTINGS_DOC_PATH), {
+        tmdbToken: state.tmdbToken,
+        updatedAt: serverTimestamp(),
+        updatedBy: state.currentUser.email || ""
+      }, { merge: true });
+      preferences.tmdbToken = "";
+      savePreferences();
+    } else {
+      state.tmdbToken = firestoreToken || state.tmdbToken || "";
+    }
+
+    state.tmdbLanguage = typeof settingsData.tmdbLanguage === "string" ? settingsData.tmdbLanguage : "ru-RU";
+    state.tmdbPosterSize = typeof settingsData.tmdbPosterSize === "string" ? settingsData.tmdbPosterSize : "w500";
+    state.tmdbAutoProxy = settingsData.tmdbAutoProxy !== false;
+    state.tmdbUseProxy = settingsData.tmdbUseProxy === true;
+    state.tmdbProxyHost = typeof settingsData.tmdbProxyHost === "string" ? settingsData.tmdbProxyHost : "";
     state.tmdbLastProxyUsed = false;
-    return;
+  } catch {
+    // Если правила не дают читать settings, оставляем безопасные дефолты и текущий token.
+    state.tmdbLanguage = state.tmdbLanguage || "ru-RU";
+    state.tmdbPosterSize = state.tmdbPosterSize || "w500";
+    state.tmdbAutoProxy = state.tmdbAutoProxy !== false;
+    state.tmdbUseProxy = state.tmdbUseProxy === true;
+    state.tmdbProxyHost = state.tmdbProxyHost || "";
+    state.tmdbLastProxyUsed = false;
+  } finally {
+    tmdbSettingsLoadedOnce = true;
   }
-
-  const snapshot = await getDoc(doc(db, ...SETTINGS_DOC_PATH));
-  const settingsData = snapshot.exists() ? snapshot.data() : {};
-  const firestoreToken = String(settingsData.tmdbToken || "").trim();
-
-  if (!firestoreToken && preferences.tmdbToken) {
-    state.tmdbToken = preferences.tmdbToken.trim();
-    await setDoc(doc(db, ...SETTINGS_DOC_PATH), {
-      tmdbToken: state.tmdbToken,
-      updatedAt: serverTimestamp(),
-      updatedBy: state.currentUser.email || ""
-    }, { merge: true });
-    preferences.tmdbToken = "";
-    savePreferences();
-    return;
-  }
-
-  state.tmdbToken = firestoreToken;
-  state.tmdbLanguage = typeof settingsData.tmdbLanguage === "string" ? settingsData.tmdbLanguage : "ru-RU";
-  state.tmdbPosterSize = typeof settingsData.tmdbPosterSize === "string" ? settingsData.tmdbPosterSize : "w500";
-  state.tmdbAutoProxy = settingsData.tmdbAutoProxy !== false;
-  state.tmdbUseProxy = settingsData.tmdbUseProxy === true;
-  state.tmdbProxyHost = typeof settingsData.tmdbProxyHost === "string" ? settingsData.tmdbProxyHost : "";
-  state.tmdbLastProxyUsed = false;
 }
 
 export function clearLookupUi() {
   elements.movieLookupQuery.value = "";
   elements.movieLookupResults.innerHTML = "";
-  setLookupStatus(state.tmdbToken ? "" : "Для автопоиска добавьте TMDB токен в настройках.");
+  setLookupStatus(state.tmdbToken ? "" : "TMDB не настроен. Обратитесь к администратору.");
 }
 
 function setLookupStatus(message) {
@@ -337,6 +343,23 @@ async function fetchTmdbJson(url) {
     }
   }
 
+  // В ряде сетей TMDB может отвечать 403/5xx вместо fetch-ошибки.
+  // Для auto-proxy пробуем ещё раз через прокси до финального сообщения об ошибке.
+  if (
+    !response.ok
+    && canAutoProxy
+    && !request.usedProxy
+    && response.status !== 401
+    && response.status !== 404
+  ) {
+    try {
+      request = buildTmdbRequest(url, true);
+      response = await performTmdbRequest(request);
+    } catch {
+      // Оставляем старый response, ниже покажем нормализованную ошибку.
+    }
+  }
+
   if (!response.ok) {
     if (response.status === 401) {
       throw new Error("TMDB отклонил токен. Проверьте ключ в настройках.");
@@ -352,6 +375,19 @@ async function fetchTmdbJson(url) {
   return response.json();
 }
 
+async function ensureTmdbLookupReady() {
+  if (tmdbSettingsLoadedOnce && state.tmdbToken) {
+    return;
+  }
+
+  try {
+    await loadTmdbSettingsFromFirestore();
+    syncSettingsFields();
+  } catch {
+    // no-op: handleMovieLookup покажет корректный статус ниже
+  }
+}
+
 function renderLookupResults(results) {
   elements.movieLookupResults.innerHTML = "";
 
@@ -359,13 +395,23 @@ function renderLookupResults(results) {
     const card = document.createElement("div");
     card.className = "lookup-result";
     card.innerHTML = `
-      <div class="poster-slot lookup-result-poster">${movie.poster ? `<img src="${movie.poster}" alt="Постер: ${movie.title}">` : "Постер"}</div>
+      <div class="poster-slot lookup-result-poster">${movie.poster ? `<img src="${escapeHtml(resolveTmdbPosterUrl(movie.poster))}" alt="Постер: ${escapeHtml(movie.title)}">` : "Постер"}</div>
       <div class="lookup-result-copy">
-        <strong>${movie.title}${movie.year ? ` (${movie.year})` : ""}</strong>
-        <span>${movie.overview || "Описание пока не найдено."}</span>
+        <strong>${escapeHtml(movie.title)}${movie.year ? ` (${escapeHtml(movie.year)})` : ""}</strong>
+        <span>${escapeHtml(movie.overview || "Описание пока не найдено.")}</span>
       </div>
       <button class="button button-primary lookup-result-action" type="button">Подставить</button>
     `;
+
+    const posterImage = card.querySelector("img");
+    if (posterImage) {
+      posterImage.addEventListener("error", () => {
+        const slot = posterImage.closest(".poster-slot");
+        if (slot) {
+          slot.textContent = "Постер";
+        }
+      }, { once: true });
+    }
 
     card.querySelector(".lookup-result-action").addEventListener("click", async () => {
       const button = card.querySelector(".lookup-result-action");
@@ -389,4 +435,29 @@ async function applyLookupResult(movie) {
   const details = await fetchTmdbMovieDetails(movie.id);
   fillMovieFormFromLookupCallback(details);
   setLookupStatus(`Данные для фильма «${details.title || movie.title}» подставлены в форму.`);
+}
+
+export function resolveTmdbPosterUrl(rawUrl) {
+  const value = String(rawUrl || "").trim();
+  if (!value) {
+    return "";
+  }
+
+  try {
+    const url = new URL(value);
+    const isTmdbImage = /(^|\.)image\.tmdb\.org$/i.test(url.hostname);
+    if (!isTmdbImage) {
+      return value;
+    }
+
+    const shouldUseProxy = hasTmdbProxyHost() && (state.tmdbUseProxy || state.tmdbAutoProxy || state.tmdbLastProxyUsed);
+    if (!shouldUseProxy) {
+      return value;
+    }
+
+    const proxiedUrl = buildTmdbProxyUrl(url);
+    return proxiedUrl ? proxiedUrl.toString() : value;
+  } catch {
+    return value;
+  }
 }

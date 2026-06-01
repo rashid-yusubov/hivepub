@@ -20,6 +20,7 @@ import { compareValues, createEmptyState, escapeHtml, formatDate, getTodayInputV
 import { getMovieSearchResultsCount, matchesFilter, getSortDirectionMultiplier, populateYearInputs, renderFilterSummary, renderGenreOptions, resetFilterState } from "./filters.js";
 import { getAverageRating, getAllRatings, clampRating, openRatingDialog } from "./ratings.js";
 import { getUserAvatarMarkup, getUserLabel, isAdmin, setStatus } from "./ui.js";
+import { resolveTmdbPosterUrl } from "./tmdb.js";
 
 let refreshAppDataCallback = async () => {};
 let openAuthDialogCallback = () => {};
@@ -260,6 +261,8 @@ export function renderMovies() {
       openRatingDialog(movie.id);
     });
 
+    applyPosterFallback(card);
+
     card.addEventListener("click", () => openDetailsDialog(movie.id));
     card.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
@@ -443,6 +446,8 @@ export function openDetailsDialog(movieId) {
     openRatingDialog(movie.id);
   });
 
+  applyPosterFallback(elements.detailsContent);
+
   if (isAdmin()) {
     elements.detailsContent.querySelector(".details-edit").addEventListener("click", () => {
       elements.detailsDialog.close();
@@ -513,10 +518,25 @@ function formatMovieMeta(movie) {
 function renderPoster(movie, extraClass = "") {
   const className = extraClass ? `poster-slot ${extraClass}` : "poster-slot";
   if (movie.poster) {
-    return `<div class="${className}"><img src="${escapeHtml(movie.poster)}" alt="Постер: ${escapeHtml(movie.title)}"></div>`;
+    const fallbackText = escapeHtml(movie.genre || "Постер");
+    return `<div class="${className}" data-poster-fallback="${fallbackText}"><img src="${escapeHtml(resolveTmdbPosterUrl(movie.poster))}" alt="Постер: ${escapeHtml(movie.title)}"></div>`;
   }
 
   return `<div class="${className}">${escapeHtml(movie.genre || "Постер")}</div>`;
+}
+
+function applyPosterFallback(container) {
+  container.querySelectorAll(".poster-slot img").forEach((image) => {
+    image.addEventListener("error", () => {
+      const slot = image.closest(".poster-slot");
+      if (!slot) {
+        return;
+      }
+
+      const fallback = slot.dataset.posterFallback || "Постер";
+      slot.textContent = fallback;
+    }, { once: true });
+  });
 }
 
 async function loadMovieSnapshot(snapshot) {

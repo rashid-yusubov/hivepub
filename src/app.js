@@ -95,6 +95,7 @@ async function refreshGuestData() {
   state.users = [];
   state.friends = [];
   try {
+    await loadTmdbSettingsFromFirestore();
     await loadMoviesFromFirestore();
   } catch (error) {
     // Не затираем уже загруженный список, если публичное чтение временно недоступно.
