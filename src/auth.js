@@ -1,0 +1,158 @@
+import {
+  ADMIN_EMAIL,
+  auth,
+  collection,
+  db,
+  doc,
+  getDoc,
+  getDocs,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  serverTimestamp,
+  setDoc,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  signOut,
+  state,
+  updateDoc
+} from "./context.js";
+import { getReadableError } from "./utils.js";
+import { renderAuthButton, setAuthPasswordVisibility, setStatus } from "./ui.js";
+
+let onSignedInCallback = async () => {};
+let onSignedOutCallback = async () => {};
+
+export function configureAuth({ onSignedIn, onSignedOut }) {
+  onSignedInCallback = onSignedIn;
+  onSignedOutCallback = onSignedOut;
+}
+
+export function subscribeToAuthState() {
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      state.currentUser = null;
+      state.currentRole = "guest";
+      state.users = [];
+      state.friends = [];
+      await onSignedOutCallback();
+      renderAuthButton();
+      return;
+    }
+
+    state.currentUser = user;
+    setStatus("");
+
+    try {
+      await ensureUserDocument(user);
+      await onSignedInCallback(user);
+    } catch (error) {
+      setStatus(getReadableError(error), "error", "auth");
+      await signOut(auth);
+    }
+  });
+}
+
+export async function handleAuthSubmit(event) {
+  event.preventDefault();
+  const email = document.querySelector("#auth-email").value.trim();
+  const password = document.querySelector("#auth-password").value;
+
+  if (!email || !password) {
+    setStatus("Введите логин и пароль.", "error", "auth");
+    return;
+  }
+
+  setStatus("Входим...", "info", "auth");
+
+  try {
+    await signInWithEmailAndPassword(auth, email, password);
+    document.querySelector("#auth-form").reset();
+  } catch (error) {
+    setStatus(getReadableError(error), "error", "auth");
+  }
+}
+
+export async function handleGoogleAuth() {
+  const button = document.querySelector("#auth-google-button");
+  button.disabled = true;
+  setStatus("Открываем вход через Google...", "info", "auth");
+
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    await signInWithPopup(auth, provider);
+    document.querySelector("#auth-form").reset();
+  } catch (error) {
+    setStatus(getReadableError(error), "error", "auth");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+export async function handleLogout() {
+  await signOut(auth);
+  setStatus("Вы вышли из аккаунта.", "success", "logout");
+}
+
+export function openAuthDialog(openDialog) {
+  setStatus("");
+  document.querySelector("#auth-password").value = "";
+  setAuthPasswordVisibility(false);
+  document.querySelector("#auth-google-button").disabled = false;
+  const dialog = document.querySelector("#auth-dialog");
+  if (!dialog.open) {
+    openDialog(dialog);
+  }
+}
+
+export async function ensureUserDocument(user) {
+  const userRef = doc(db, "users", user.uid);
+  const snapshot = await getDoc(userRef);
+  const nextRole = user.email === ADMIN_EMAIL ? "admin" : "user";
+  const profileData = {
+    email: user.email || "",
+    displayName: user.displayName || "",
+    photoURL: user.photoURL || "",
+    active: true,
+    updatedAt: serverTimestamp()
+  };
+
+  if (!snapshot.exists()) {
+    await setDoc(userRef, {
+      ...profileData,
+      roleView: nextRole,
+      createdAt: serverTimestamp()
+    });
+    state.currentRole = nextRole;
+    return;
+  }
+
+  const data = snapshot.data();
+  state.currentRole = data.roleView === "admin" ? "admin" : nextRole;
+  await setDoc(userRef, profileData, { merge: true });
+
+  if (user.email === ADMIN_EMAIL && data.roleView !== "admin") {
+    await updateDoc(userRef, { roleView: "admin" });
+    state.currentRole = "admin";
+  }
+}
+
+export async function loadUsersFromFirestore() {
+  const snapshot = await getDocs(collection(db, "users"));
+  state.users = snapshot.docs
+    .map((item) => ({
+      id: item.id,
+      email: item.data().email || "",
+      displayName: item.data().displayName || "",
+      photoURL: item.data().photoURL || "",
+      roleView: item.data().roleView === "admin" ? "admin" : "user",
+      active: item.data().active !== false
+    }))
+    .sort((left, right) => (left.displayName || left.email).localeCompare(right.displayName || right.email, "ru"));
+
+  state.friends = state.users.map((user) => user.email);
+  const current = state.users.find((user) => user.id === state.currentUser?.uid);
+  if (current) {
+    state.currentRole = current.roleView;
+  }
+}
