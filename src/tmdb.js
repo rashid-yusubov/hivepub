@@ -66,6 +66,7 @@ export async function handleTmdbSettingsChange() {
       updatedAt: serverTimestamp(),
       updatedBy: state.currentUser?.email || ""
     }, { merge: true });
+    preferences.tmdbToken = state.tmdbToken;
     savePreferences();
     setStatus("TMDB ключ сохранён в Firebase.", "success", "auth");
   } catch {
@@ -165,6 +166,10 @@ export async function loadTmdbSettingsFromFirestore() {
       savePreferences();
     } else {
       state.tmdbToken = firestoreToken || state.tmdbToken || "";
+      if (firestoreToken && preferences.tmdbToken !== firestoreToken) {
+        preferences.tmdbToken = firestoreToken;
+        savePreferences();
+      }
     }
 
     state.tmdbLanguage = typeof settingsData.tmdbLanguage === "string" ? settingsData.tmdbLanguage : "ru-RU";
@@ -175,6 +180,9 @@ export async function loadTmdbSettingsFromFirestore() {
     state.tmdbLastProxyUsed = false;
   } catch {
     // Если правила не дают читать settings, оставляем безопасные дефолты и текущий token.
+    if (!state.tmdbToken && preferences.tmdbToken) {
+      state.tmdbToken = preferences.tmdbToken.trim();
+    }
     state.tmdbLanguage = state.tmdbLanguage || "ru-RU";
     state.tmdbPosterSize = state.tmdbPosterSize || "w500";
     state.tmdbAutoProxy = state.tmdbAutoProxy !== false;
@@ -385,6 +393,10 @@ async function ensureTmdbLookupReady() {
     syncSettingsFields();
   } catch {
     // no-op: handleMovieLookup покажет корректный статус ниже
+  }
+
+  if (!state.tmdbToken && preferences.tmdbToken) {
+    state.tmdbToken = preferences.tmdbToken.trim();
   }
 }
 
