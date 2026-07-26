@@ -2,8 +2,6 @@ import {
   db,
   doc,
   elements,
-  preferences,
-  savePreferences,
   serverTimestamp,
   SETTINGS_DOC_PATH,
   setDoc,
@@ -24,8 +22,6 @@ export function configureTmdb({ fillMovieFormFromLookup }) {
 }
 
 export function syncSettingsFields() {
-  // Не светим ключ не-админам в UI, но в runtime ключ остаётся доступным.
-  elements.tmdbToken.value = state.currentRole === "admin" ? (state.tmdbToken || "") : "";
   elements.tmdbLanguage.value = state.tmdbLanguage;
   elements.tmdbPosterSize.value = state.tmdbPosterSize;
   elements.tmdbAutoProxy.checked = state.tmdbAutoProxy;
@@ -40,7 +36,6 @@ export function syncTmdbProxyFieldState() {
 }
 
 export async function handleTmdbSettingsChange() {
-  state.tmdbToken = elements.tmdbToken.value.trim();
   state.tmdbLanguage = elements.tmdbLanguage.value;
   state.tmdbPosterSize = elements.tmdbPosterSize.value;
   state.tmdbAutoProxy = elements.tmdbAutoProxy.checked;
@@ -57,7 +52,6 @@ export async function handleTmdbSettingsChange() {
 
   try {
     await setDoc(doc(db, ...SETTINGS_DOC_PATH), {
-      tmdbToken: state.tmdbToken,
       tmdbLanguage: state.tmdbLanguage,
       tmdbPosterSize: state.tmdbPosterSize,
       tmdbAutoProxy: state.tmdbAutoProxy,
@@ -66,11 +60,9 @@ export async function handleTmdbSettingsChange() {
       updatedAt: serverTimestamp(),
       updatedBy: state.currentUser?.email || ""
     }, { merge: true });
-    preferences.tmdbToken = state.tmdbToken;
-    savePreferences();
-    setStatus("TMDB ключ сохранён в Firebase.", "success", "auth");
+    setStatus("TMDB настройки сохранены в Firebase.", "success", "auth");
   } catch {
-    setStatus("Не удалось сохранить TMDB ключ в Firebase.", "error", "auth");
+    setStatus("Не удалось сохранить TMDB настройки в Firebase.", "error", "auth");
   }
 }
 
@@ -153,24 +145,7 @@ export async function loadTmdbSettingsFromFirestore() {
   try {
     const snapshot = await getDoc(doc(db, ...SETTINGS_DOC_PATH));
     const settingsData = snapshot.exists() ? snapshot.data() : {};
-    const firestoreToken = String(settingsData.tmdbToken || "").trim();
-
-    if (!firestoreToken && preferences.tmdbToken && state.currentRole === "admin" && state.currentUser) {
-      state.tmdbToken = preferences.tmdbToken.trim();
-      await setDoc(doc(db, ...SETTINGS_DOC_PATH), {
-        tmdbToken: state.tmdbToken,
-        updatedAt: serverTimestamp(),
-        updatedBy: state.currentUser.email || ""
-      }, { merge: true });
-      preferences.tmdbToken = "";
-      savePreferences();
-    } else {
-      state.tmdbToken = firestoreToken || state.tmdbToken || "";
-      if (firestoreToken && preferences.tmdbToken !== firestoreToken) {
-        preferences.tmdbToken = firestoreToken;
-        savePreferences();
-      }
-    }
+    state.tmdbToken = String(settingsData.tmdbToken || "").trim();
 
     state.tmdbLanguage = typeof settingsData.tmdbLanguage === "string" ? settingsData.tmdbLanguage : "ru-RU";
     state.tmdbPosterSize = typeof settingsData.tmdbPosterSize === "string" ? settingsData.tmdbPosterSize : "w500";
@@ -179,10 +154,7 @@ export async function loadTmdbSettingsFromFirestore() {
     state.tmdbProxyHost = typeof settingsData.tmdbProxyHost === "string" ? settingsData.tmdbProxyHost : "";
     state.tmdbLastProxyUsed = false;
   } catch {
-    // Если правила не дают читать settings, оставляем безопасные дефолты и текущий token.
-    if (!state.tmdbToken && preferences.tmdbToken) {
-      state.tmdbToken = preferences.tmdbToken.trim();
-    }
+    state.tmdbToken = "";
     state.tmdbLanguage = state.tmdbLanguage || "ru-RU";
     state.tmdbPosterSize = state.tmdbPosterSize || "w500";
     state.tmdbAutoProxy = state.tmdbAutoProxy !== false;
@@ -393,10 +365,6 @@ async function ensureTmdbLookupReady() {
     syncSettingsFields();
   } catch {
     // no-op: handleMovieLookup покажет корректный статус ниже
-  }
-
-  if (!state.tmdbToken && preferences.tmdbToken) {
-    state.tmdbToken = preferences.tmdbToken.trim();
   }
 }
 

@@ -23,24 +23,6 @@ import {
   writeBatch
 } from "./firebase.js";
 
-const PREFS_KEY = "movie-night-club-preferences";
-
-function loadPreferences() {
-  try {
-    const raw = localStorage.getItem(PREFS_KEY);
-    if (!raw) {
-      return { tmdbToken: "" };
-    }
-
-    const parsed = JSON.parse(raw);
-    return {
-      tmdbToken: typeof parsed.tmdbToken === "string" ? parsed.tmdbToken : ""
-    };
-  } catch {
-    return { tmdbToken: "" };
-  }
-}
-
 export const LOGIN_ICON_HTML = '<span class="material-symbols-outlined">login</span>';
 export const LOGOUT_ICON_SVG = '<svg viewBox="0 -960 960 960" fill="currentColor"><path d="M216-144q-29.7 0-50.85-21.15Q144-186.3 144-216v-528q0-29.7 21.15-50.85Q186.3-816 216-816h264v72H216v528h264v72H216Zm408-168-50.4-51.6L655.2-456H384v-72h271.2l-81.6-92.4L624-672l168 192-168 168Z"/></svg>';
 export const TOAST_ICONS = {
@@ -62,7 +44,6 @@ export const TOAST_ACTION_ICONS = {
 export const TMDB_API_BASE = "https://api.themoviedb.org/3";
 export const TMDB_IMAGE_ROOT = "https://image.tmdb.org/t/p";
 export const SETTINGS_DOC_PATH = ["settings", "integrations"];
-export const preferences = loadPreferences();
 
 export const state = {
   currentUser: null,
@@ -70,7 +51,7 @@ export const state = {
   users: [],
   friends: [],
   movies: [],
-  tmdbToken: preferences.tmdbToken || "",
+  tmdbToken: "",
   tmdbLanguage: "ru-RU",
   tmdbPosterSize: "w500",
   tmdbAutoProxy: true,
@@ -185,7 +166,6 @@ export const elements = {
   movieLookupButton: document.querySelector("#movie-lookup-button"),
   movieLookupStatus: document.querySelector("#movie-lookup-status"),
   movieLookupResults: document.querySelector("#movie-lookup-results"),
-  tmdbToken: document.querySelector("#tmdb-token"),
   tmdbLanguage: document.querySelector("#tmdb-language"),
   tmdbPosterSize: document.querySelector("#tmdb-poster-size"),
   tmdbAutoProxy: document.querySelector("#tmdb-auto-proxy"),
@@ -269,7 +249,3 @@ export {
   updateProfile,
   writeBatch
 };
-
-export function savePreferences() {
-  localStorage.setItem(PREFS_KEY, JSON.stringify(preferences));
-}

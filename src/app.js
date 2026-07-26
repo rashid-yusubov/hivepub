@@ -175,7 +175,6 @@ function bindEvents() {
   });
   elements.movieLookupQuery.addEventListener("click", (event) => event.stopPropagation());
   elements.movieLookupQuery.addEventListener("pointerdown", (event) => event.stopPropagation());
-  elements.tmdbToken.addEventListener("input", handleTmdbSettingsChange);
   elements.tmdbLanguage.addEventListener("change", handleTmdbSettingsChange);
   elements.tmdbPosterSize.addEventListener("change", handleTmdbSettingsChange);
   elements.tmdbAutoProxy.addEventListener("change", handleTmdbSettingsChange);

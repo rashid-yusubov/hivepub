@@ -725,7 +725,7 @@ function resetMovieForm(refs) {
   if (refs.clearLookup) {
     elements.movieLookupQuery.value = "";
     elements.movieLookupResults.innerHTML = "";
-    elements.movieLookupStatus.textContent = state.tmdbToken ? "" : "Для автопоиска добавьте TMDB токен в настройках.";
+    elements.movieLookupStatus.textContent = state.tmdbToken ? "" : "TMDB не настроен. Обратитесь к администратору.";
   }
 }
 
