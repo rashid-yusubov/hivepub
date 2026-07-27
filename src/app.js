@@ -9,7 +9,9 @@ import {
   handleMovieSubmit,
   loadMoviesFromCache,
   loadMoviesFromFirestore,
+  openManualMovieDialog,
   openMovieDialog,
+  setMovieDialogStage,
   startMoviesRealtime,
   resetMovieEditorForm,
   renderMovies,
@@ -33,7 +35,7 @@ import {
 } from "./filters.js";
 import { configureProfile, handleLinkGoogleAccount, handleProfileAvatarFileChange, handleProfileSubmit, handleRemoveProfileAvatar, syncProfileAvatarPreviewFromFields, syncProfileForm } from "./profile.js";
 import { buildRatingStars, configureRatings, handleRatingSubmit } from "./ratings.js";
-import { configureTmdb, handleMovieLookup, handleTmdbSettingsChange, loadTmdbSettingsFromFirestore, syncSettingsFields, syncTmdbProxyFieldState } from "./tmdb.js";
+import { configureTmdb, handleMovieLookup, handleMovieLookupInput, handleTmdbSettingsChange, loadTmdbSettingsFromFirestore, renderLookupRecentSearches, syncSettingsFields, syncTmdbProxyFieldState } from "./tmdb.js";
 import { closeAdminDialogs, closeUserMenu, getCurrentUserLabel, getRoleLabel, getUserAvatarMarkup, getUserLabel, handleGlobalClick, isAdmin, openDialog, renderAuthButton, setAuthPasswordVisibility, setStatus, syncBodyModalState, toggleAuthPasswordVisibility, toggleUserMenu } from "./ui.js";
 import { createEmptyState, escapeHtml, getTodayInputValue } from "./utils.js";
 
@@ -134,6 +136,7 @@ function bindEvents() {
   elements.openAddMovie.addEventListener("click", () => {
     if (isAdmin()) {
       openMovieDialog();
+      renderLookupRecentSearches();
     }
   });
   elements.openSettings.addEventListener("click", () => {
@@ -166,7 +169,16 @@ function bindEvents() {
   elements.linkGoogleButton.addEventListener("click", handleLinkGoogleAccount);
   elements.removeProfileAvatar.addEventListener("click", handleRemoveProfileAvatar);
   elements.openFilter.addEventListener("click", () => openFilterDialog(openDialog));
-  elements.movieLookupButton.addEventListener("click", handleMovieLookup);
+  elements.openManualMovieForm.addEventListener("click", () => {
+    elements.settingsDialog.close();
+    openManualMovieDialog();
+  });
+  elements.movieFormBack.addEventListener("click", () => {
+    setMovieDialogStage("search");
+    renderLookupRecentSearches();
+    requestAnimationFrame(() => elements.movieLookupQuery.focus());
+  });
+  elements.movieLookupQuery.addEventListener("input", handleMovieLookupInput);
   elements.movieLookupQuery.addEventListener("keydown", (event) => {
     if (event.key === "Enter") {
       event.preventDefault();
@@ -289,6 +301,7 @@ function updateRoleUi() {
   elements.clearAll.hidden = !isAdmin();
   elements.settingsTabUsers.hidden = !isAdmin();
   elements.settingsTabTmdb.hidden = !isAdmin();
+  elements.settingsTabFilms.hidden = !isAdmin();
 }
 
 function renderUsersList() {

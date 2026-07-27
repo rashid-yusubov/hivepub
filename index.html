@@ -126,30 +126,31 @@
     </main>
   </div>
 
-  <dialog id="movie-dialog" class="dialog">
-    <button class="icon-button dialog-close-floating" id="close-movie-dialog" type="button" aria-label="Закрыть">×</button>
-    <form id="movie-form" class="dialog-card movie-form" method="dialog">
+  <dialog id="movie-dialog" class="dialog movie-search-dialog">
+    <form id="movie-form" class="dialog-card movie-form movie-form-shell" method="dialog">
+      <button class="icon-button movie-dialog-close" id="close-movie-dialog" type="button" aria-label="Закрыть">×</button>
       <input id="movie-edit-id" name="movieId" type="hidden">
 
-      <section class="lookup-section">
-        <div class="lookup-head">
-          <div>
-            <h3>Автопоиск фильма</h3>
-            <p class="panel-hint">Введите название на русском или английском, и мы подставим данные автоматически.</p>
+      <section id="movie-search-stage" class="movie-search-stage">
+        <div class="movie-search-panel">
+          <label class="movie-search-field" for="movie-lookup-query">
+            <span class="movie-search-icon material-symbols-outlined" aria-hidden="true">search</span>
+            <input id="movie-lookup-query" name="tmdb-movie-search" type="text" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" placeholder="Найти фильм по названию">
+          </label>
+          <div class="movie-search-body">
+            <div id="movie-lookup-status" class="panel-hint lookup-status"></div>
+            <div id="movie-lookup-recent" class="lookup-recent"></div>
+            <div id="movie-lookup-results" class="lookup-results lookup-results-search" aria-live="polite"></div>
           </div>
         </div>
-        <div class="lookup-bar">
-          <label class="lookup-field">
-            <span class="sr-only">Поиск фильма в TMDB</span>
-              <input id="movie-lookup-query" name="tmdb-movie-search" type="text" inputmode="search" autocomplete="off" autocapitalize="off" spellcheck="false" data-lpignore="true" placeholder="Например, American Psycho">
-          </label>
-          <button class="button button-secondary" id="movie-lookup-button" type="button">
-            <span class="button-content"><span class="button-icon" aria-hidden="true">⌕</span><span>Найти и подставить</span></span>
-          </button>
-        </div>
-        <div id="movie-lookup-status" class="panel-hint lookup-status"></div>
-        <div id="movie-lookup-results" class="lookup-results" aria-live="polite"></div>
       </section>
+
+      <section id="movie-form-stage" class="movie-form-stage" hidden>
+      <div class="movie-form-stage-head">
+        <button class="button button-secondary movie-form-back" id="movie-form-back" type="button">
+          <span class="button-content"><span class="button-icon" aria-hidden="true">←</span><span>Назад к поиску</span></span>
+        </button>
+      </div>
 
       <div class="field-grid">
         <label>
@@ -201,6 +202,7 @@
           <span class="button-content"><span class="button-icon" aria-hidden="true">↺</span><span>Сбросить</span></span>
         </button>
       </div>
+      </section>
     </form>
   </dialog>
 
@@ -217,6 +219,9 @@
           </button>
           <button class="settings-nav-button" id="settings-tab-tmdb" data-settings-tab="tmdb" type="button">
             <span class="button-content"><span class="button-icon" aria-hidden="true"><span class="material-symbols-outlined">movie</span></span><span>TMDB</span></span>
+          </button>
+          <button class="settings-nav-button" id="settings-tab-films" data-settings-tab="films" type="button">
+            <span class="button-content"><span class="button-icon" aria-hidden="true"><span class="material-symbols-outlined">theaters</span></span><span>Фильмы</span></span>
           </button>
         </aside>
 
@@ -383,6 +388,20 @@
                 <h3>API / прокси домен</h3>
                 <p class="panel-hint">Например: `api.proxy.com` или полный URL прокси.</p>
                 <input id="tmdb-proxy-host" type="text" spellcheck="false" placeholder="Например: api.proxy.com">
+              </section>
+            </div>
+          </section>
+
+          <section class="settings-panel" id="settings-panel-films" data-settings-panel="films" hidden>
+            <div class="settings-stack">
+              <section class="settings-block settings-row-block">
+                <div>
+                  <h3>Добавление фильма вручную</h3>
+                  <p class="panel-hint">Если автопоиск не нашёл нужный фильм, откройте полную форму и заполните её вручную.</p>
+                </div>
+                <button class="button button-primary" id="open-manual-movie-form" type="button">
+                  <span class="button-content"><span class="button-icon" aria-hidden="true">＋</span><span>Добавить вручную</span></span>
+                </button>
               </section>
             </div>
           </section>

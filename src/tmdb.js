@@ -16,6 +16,8 @@ import { escapeHtml } from "./utils.js";
 let tmdbGenresMap = null;
 let fillMovieFormFromLookupCallback = () => {};
 let tmdbSettingsLoadedOnce = false;
+let lookupDebounceId = 0;
+const RECENT_LOOKUPS_KEY = "pidr-recent-lookups-v1";
 
 export function configureTmdb({ fillMovieFormFromLookup }) {
   fillMovieFormFromLookupCallback = fillMovieFormFromLookup;
@@ -68,44 +70,76 @@ export async function handleTmdbSettingsChange() {
 
 export async function handleMovieLookup() {
   const query = elements.movieLookupQuery.value.trim();
+  return performMovieLookup(query, { immediateApply: true });
+}
+
+export function handleMovieLookupInput() {
+  const query = elements.movieLookupQuery.value.trim();
+
+  window.clearTimeout(lookupDebounceId);
+
   if (!query) {
-    setLookupStatus("Введите название фильма для поиска.");
     elements.movieLookupResults.innerHTML = "";
+    renderLookupRecentSearches();
+    return;
+  }
+
+  elements.movieLookupRecent.innerHTML = "";
+
+  lookupDebounceId = window.setTimeout(() => {
+    void performMovieLookup(query, { immediateApply: false });
+  }, 260);
+}
+
+export function clearMovieLookupQuery() {
+  window.clearTimeout(lookupDebounceId);
+  elements.movieLookupQuery.value = "";
+  elements.movieLookupResults.innerHTML = "";
+  renderLookupRecentSearches();
+}
+
+export function renderLookupRecentSearches() {
+  if (!elements.movieLookupRecent) {
+    return;
+  }
+  elements.movieLookupRecent.innerHTML = "";
+}
+
+async function performMovieLookup(query, { immediateApply }) {
+  if (!query) {
+    elements.movieLookupResults.innerHTML = "";
+    renderLookupRecentSearches();
     return;
   }
 
   await ensureTmdbLookupReady();
 
   if (!state.tmdbToken) {
-    setLookupStatus("TMDB не настроен. Обратитесь к администратору.");
     elements.movieLookupResults.innerHTML = "";
+    setStatus("TMDB не настроен. Обратитесь к администратору.", "error", "movieAdd");
     return;
   }
 
-  setLookupStatus("Ищем фильмы...");
   elements.movieLookupResults.innerHTML = "";
-  elements.movieLookupButton.disabled = true;
+  elements.movieLookupRecent.innerHTML = "";
 
   try {
     const results = await searchTmdbMovies(query);
+    saveRecentLookupQuery(query);
 
     if (!results.length) {
-      setLookupStatus("Ничего не найдено. Попробуйте другое название.");
       return;
     }
 
-    if (results.length === 1) {
+    if (immediateApply && results.length === 1) {
       await applyLookupResult(results[0]);
       elements.movieLookupResults.innerHTML = "";
       return;
     }
 
-    setLookupStatus("Нашлось несколько похожих вариантов. Выберите нужный фильм из списка.");
     renderLookupResults(results);
   } catch (error) {
-    setLookupStatus(error instanceof Error ? error.message : "Не удалось выполнить поиск фильма.");
-  } finally {
-    elements.movieLookupButton.disabled = false;
+    setStatus(error instanceof Error ? error.message : "Не удалось выполнить поиск фильма.", "error", "movieAdd");
   }
 }
 
@@ -167,13 +201,7 @@ export async function loadTmdbSettingsFromFirestore() {
 }
 
 export function clearLookupUi() {
-  elements.movieLookupQuery.value = "";
-  elements.movieLookupResults.innerHTML = "";
-  setLookupStatus(state.tmdbToken ? "" : "TMDB не настроен. Обратитесь к администратору.");
-}
-
-function setLookupStatus(message) {
-  elements.movieLookupStatus.textContent = message;
+  clearMovieLookupQuery();
 }
 
 async function searchTmdbMovies(query) {
@@ -188,13 +216,13 @@ async function searchTmdbMovies(query) {
 
   return results
     .filter((movie) => movie && movie.id)
-    .slice(0, 5)
     .map((movie) => ({
       id: movie.id,
       title: movie.title || movie.original_title || "Без названия",
       year: movie.release_date ? movie.release_date.slice(0, 4) : "",
       overview: movie.overview || "",
-      poster: movie.poster_path ? getTmdbImageUrl(movie.poster_path) : ""
+      poster: movie.poster_path ? getTmdbImageUrl(movie.poster_path) : "",
+      rating: Number(movie.vote_average || 0)
     }));
 }
 
@@ -372,38 +400,38 @@ function renderLookupResults(results) {
   elements.movieLookupResults.innerHTML = "";
 
   results.forEach((movie) => {
-    const card = document.createElement("div");
-    card.className = "lookup-result";
+    const card = document.createElement("button");
+    card.className = "lookup-result lookup-result-search-card";
+    card.type = "button";
     card.innerHTML = `
-      <div class="poster-slot lookup-result-poster">${movie.poster ? `<img src="${escapeHtml(resolveTmdbPosterUrl(movie.poster))}" alt="Постер: ${escapeHtml(movie.title)}">` : "Постер"}</div>
+      <div class="lookup-result-poster">${movie.poster ? `<img src="${escapeHtml(resolveTmdbPosterUrl(movie.poster))}" alt="Постер: ${escapeHtml(movie.title)}">` : '<span class="lookup-result-poster-fallback">Нет постера</span>'}</div>
       <div class="lookup-result-copy">
-        <strong>${escapeHtml(movie.title)}${movie.year ? ` (${escapeHtml(movie.year)})` : ""}</strong>
-        <span>${escapeHtml(movie.overview || "Описание пока не найдено.")}</span>
+        <strong>${escapeHtml(movie.title)}</strong>
+        <span>${[movie.year, movie.rating ? `★ ${movie.rating.toFixed(1)}` : ""].filter(Boolean).join(" • ")}</span>
       </div>
-      <button class="button button-primary lookup-result-action" type="button">Подставить</button>
+      <span class="lookup-result-badge">MOVIE</span>
     `;
 
     const posterImage = card.querySelector("img");
     if (posterImage) {
       posterImage.addEventListener("error", () => {
-        const slot = posterImage.closest(".poster-slot");
+        const slot = posterImage.closest(".lookup-result-poster");
         if (slot) {
-          slot.textContent = "Постер";
+          slot.innerHTML = '<span class="lookup-result-poster-fallback">Нет постера</span>';
         }
       }, { once: true });
     }
 
-    card.querySelector(".lookup-result-action").addEventListener("click", async () => {
-      const button = card.querySelector(".lookup-result-action");
-      button.disabled = true;
-      button.textContent = "Загружаем...";
+    card.addEventListener("click", async () => {
+      card.disabled = true;
+      card.classList.add("is-loading");
 
       try {
         await applyLookupResult(movie);
         elements.movieLookupResults.innerHTML = "";
       } finally {
-        button.disabled = false;
-        button.textContent = "Подставить";
+        card.disabled = false;
+        card.classList.remove("is-loading");
       }
     });
 
@@ -414,7 +442,34 @@ function renderLookupResults(results) {
 async function applyLookupResult(movie) {
   const details = await fetchTmdbMovieDetails(movie.id);
   fillMovieFormFromLookupCallback(details);
-  setLookupStatus(`Данные для фильма «${details.title || movie.title}» подставлены в форму.`);
+}
+
+function getRecentLookupQueries() {
+  try {
+    const raw = localStorage.getItem(RECENT_LOOKUPS_KEY);
+    const parsed = JSON.parse(raw || "[]");
+    return Array.isArray(parsed) ? parsed.filter(Boolean).slice(0, 5) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentLookupQuery(query) {
+  const normalizedQuery = String(query || "").trim();
+  if (!normalizedQuery) {
+    return;
+  }
+
+  const nextQueries = [
+    normalizedQuery,
+    ...getRecentLookupQueries().filter((item) => item.toLocaleLowerCase("ru") !== normalizedQuery.toLocaleLowerCase("ru"))
+  ].slice(0, 5);
+
+  try {
+    localStorage.setItem(RECENT_LOOKUPS_KEY, JSON.stringify(nextQueries));
+  } catch {
+    // ignore
+  }
 }
 
 export function resolveTmdbPosterUrl(rawUrl) {

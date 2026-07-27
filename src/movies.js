@@ -361,8 +361,16 @@ export async function clearAllData() {
 
 export function openMovieDialog() {
   resetMovieForm(addMovieRefs);
+  setMovieDialogStage("search");
   openDialogCallback(elements.movieDialog);
   requestAnimationFrame(() => elements.movieLookupQuery.focus());
+}
+
+export function openManualMovieDialog() {
+  resetMovieForm(addMovieRefs);
+  setMovieDialogStage("form");
+  openDialogCallback(elements.movieDialog);
+  requestAnimationFrame(() => elements.movieTitle.focus());
 }
 
 export function openMovieEditor(movieId) {
@@ -476,6 +484,7 @@ export function fillMovieFormFromLookup(movie) {
   addMovieRefs.notes().value = movie.notes || "";
   addMovieRefs.posterUrl().value = movie.poster || "";
   addMovieRefs.posterFile().value = "";
+  setMovieDialogStage("form");
 }
 
 export function handleMovieFormReset() {
@@ -726,7 +735,18 @@ function resetMovieForm(refs) {
     elements.movieLookupQuery.value = "";
     elements.movieLookupResults.innerHTML = "";
     elements.movieLookupStatus.textContent = state.tmdbToken ? "" : "TMDB не настроен. Обратитесь к администратору.";
+    if (elements.movieLookupRecent) {
+      elements.movieLookupRecent.innerHTML = "";
+    }
+    setMovieDialogStage("search");
   }
+}
+
+export function setMovieDialogStage(stage = "search") {
+  const normalizedStage = stage === "form" ? "form" : "search";
+  elements.movieDialog.dataset.stage = normalizedStage;
+  elements.movieSearchStage.hidden = normalizedStage !== "search";
+  elements.movieFormStage.hidden = normalizedStage !== "form";
 }
 
 function clearMovieRatingFields(container) {
