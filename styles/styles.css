@@ -906,8 +906,7 @@ p,
 .movie-search-body {
   display: grid;
   align-content: start;
-  max-height: 480px;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .movie-form-stage {
@@ -1012,11 +1011,31 @@ p,
 .lookup-results-search {
   gap: 0;
   padding: 8px 12px 12px;
+  max-height: 420px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.24) transparent;
 }
 
 .lookup-results-search:empty {
   display: none;
   padding: 0;
+}
+
+.lookup-results-search::-webkit-scrollbar {
+  width: 8px;
+}
+
+.lookup-results-search::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lookup-results-search::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  background-clip: content-box;
 }
 
 .lookup-result {
